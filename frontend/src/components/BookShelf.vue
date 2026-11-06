@@ -1,29 +1,33 @@
 <template>
   <p v-if="!books.length" class="text-secondary text-center py-5 mb-0">{{ emptyText }}</p>
-  <div v-for="(row, i) in rows" :key="i" class="shelf">
-    <div
-      v-for="book in row"
-      :key="book.id"
-      class="spine-slot"
-      :class="{ open: active === book.id }"
-      :style="{ flexBasis: `${spineWidth(book.word_count)}px` }"
-    >
-      <div class="book" :style="{ height: `${spineHeight(book.title)}px` }">
-        <button
-          type="button"
-          class="spine"
-          :class="{ read: book.read }"
-          :title="book.title"
-          :style="{ backgroundColor: spineColor(book), color: spineInk(spineColor(book)) }"
-          @click="choose(book)"
-        >
-          <span class="spine-title">{{ book.title }}</span>
-        </button>
-        <span v-if="book.read" class="spine-tag">完讀</span>
+  <div v-else class="shelves">
+    <div v-for="(row, i) in rows" :key="i" class="shelf">
+      <span class="bookend" aria-hidden="true"></span>
+      <div
+        v-for="book in row"
+        :key="book.id"
+        class="spine-slot"
+        :class="{ open: active === book.id }"
+        :style="{ width: `${spineWidth(book.word_count)}px` }"
+      >
+        <div class="book" :style="{ height: `${spineHeight(book.title)}px` }">
+          <button
+            type="button"
+            class="spine"
+            :class="{ read: book.read }"
+            :title="book.title"
+            :style="{ backgroundColor: spineColor(book), color: spineInk(spineColor(book)) }"
+            @click="choose(book)"
+          >
+            <span class="spine-title">{{ book.title }}</span>
+          </button>
+          <span v-if="book.read" class="spine-tag">完讀</span>
+        </div>
+        <div v-if="active === book.id" class="spine-menu">
+          <slot name="menu" :book="book" :close="close" />
+        </div>
       </div>
-      <div v-if="active === book.id" class="spine-menu">
-        <slot name="menu" :book="book" :close="close" />
-      </div>
+      <span class="bookend" aria-hidden="true"></span>
     </div>
   </div>
   <div v-if="active" class="spine-backdrop" @click="close"></div>
@@ -58,39 +62,50 @@ function choose (book) {
 </script>
 
 <style scoped>
+/* 書架長度跟著書走，上下排列置中 */
+.shelves {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 44px;
+  margin-bottom: 40px;
+}
 .shelf {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: 5px;
+  max-width: 100%;
   min-height: 196px;
-  margin-bottom: 46px;
-  padding: 0 22px;
   position: relative;
-  background: linear-gradient(180deg, rgba(139, 107, 74, .06), rgba(139, 107, 74, .14));
-  border-radius: 4px 4px 0 0;
 }
-.shelf::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: 10px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, 0));
-  pointer-events: none;
-}
+/* 底板 */
 .shelf::after {
   content: "";
   position: absolute;
-  left: -6px;
-  right: -6px;
-  bottom: -18px;
-  height: 18px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #B8956B 0%, #A07D57 40%, #8B6B4A 100%);
-  box-shadow: 0 12px 14px -8px rgba(60, 40, 20, .5), inset 0 1px 0 rgba(255, 255, 255, .35);
+  left: 0;
+  right: 0;
+  bottom: -12px;
+  height: 12px;
+  border-radius: 1px 1px 3px 3px;
+  background:
+    repeating-linear-gradient(92deg, rgba(60, 35, 15, .1) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, #A07D57 0%, #8B6B4A 55%, #6E5338 100%);
+  box-shadow: 0 12px 14px -8px rgba(60, 40, 20, .5), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+/* 兩側擋板，比書略矮，高書才露得出來 */
+.bookend {
+  flex: none;
+  width: 18px;
+  height: 158px;
+  border-radius: 5px 5px 0 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(60, 35, 15, .13) 0 1px, transparent 1px 4px, rgba(255, 235, 205, .07) 4px 5px, transparent 5px 7px),
+    linear-gradient(90deg, #A07D57 0%, #8B6B4A 45%, #6E5338 100%);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, .22) inset, 2px 1px 4px rgba(60, 40, 20, .3);
 }
 
 /* 位置與抽出動畫放外層，已讀的灰階只作用在書脊本體，完讀標籤保持綠色 */
-.spine-slot { flex: 0 1 44px; min-width: 18px; position: relative; }
+.spine-slot { flex: 0 1 auto; min-width: 18px; position: relative; }
 .spine-slot.open { z-index: 20; }
 .book { position: relative; transition: transform .18s; }
 .spine-slot:hover .book, .spine-slot.open .book { transform: translateY(-18px) translateX(-1px); }
@@ -172,6 +187,7 @@ function choose (book) {
 .spine-backdrop { position: fixed; inset: 0; z-index: 10; }
 
 @media (max-width: 767.98px) {
-  .shelf { padding: 0 10px; gap: 4px; }
+  .shelf { gap: 3px; }
+  .bookend { width: 12px; }
 }
 </style>

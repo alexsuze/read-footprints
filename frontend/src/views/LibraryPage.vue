@@ -67,8 +67,9 @@ const SORTS = [
   { value: 'created_at', label: '建立時間' }
 ]
 const MOBILE = window.matchMedia('(max-width: 767.98px)').matches
-const PER_ROW = MOBILE ? 5 : 10
-const PER_SHELF = PER_ROW * 2 // 規劃書 4.3：桌機 20、手機 10
+const WIDE = window.matchMedia('(min-width: 1400px)').matches
+const PER_ROW = MOBILE ? 5 : WIDE ? 20 : 10
+const PER_SHELF = PER_ROW * 2 // 上下兩座：手機 10、桌機 20、寬螢幕 40
 
 const auth = useAuthStore()
 const perRow = PER_ROW
