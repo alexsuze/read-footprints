@@ -3,10 +3,13 @@ package com.readfootprints.service;
 import com.readfootprints.model.Book;
 import com.readfootprints.model.BookCover;
 import com.readfootprints.model.Category;
+import com.readfootprints.model.Loan;
 import com.readfootprints.model.User;
 import com.readfootprints.repository.BookCoverRepository;
 import com.readfootprints.repository.BookRepository;
 import com.readfootprints.repository.CategoryRepository;
+import com.readfootprints.repository.LoanRepository;
+import com.readfootprints.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -44,9 +47,13 @@ public class BookService {
     private final CategoryRepository categories;
     private final MongoTemplate mongo;
     private final UserService users;
+    private final LoanRepository loans;
+    private final UserRepository userRepo;
 
     public BookService(BookRepository books, BookCoverRepository covers, CategoryRepository categories,
-                       MongoTemplate mongo, UserService users) {
+                       MongoTemplate mongo, UserService users, LoanRepository loans, UserRepository userRepo) {
+        this.loans = loans;
+        this.userRepo = userRepo;
         this.books = books;
         this.covers = covers;
         this.categories = categories;
@@ -92,6 +99,7 @@ public class BookService {
         List<Book> items = mongo.find(new Query(filtered)
                 .with(PageRequest.of(pageNo - 1, pageSize, Sort.by(direction, field).and(Sort.by("id")))), Book.class);
         items.forEach(b -> prepare(b, names, isOwner));
+        attachLoans(me, items);
         return new BookPage(items, mongo.count(new Query(filtered), Book.class),
                 mongo.count(new Query(and(base, where("read").is(true))), Book.class), pageNo, pageSize);
     }
@@ -102,6 +110,7 @@ public class BookService {
         User admin = isOwner ? null : users.admin();
         if (!isOwner && (admin == null || !b.userId.equals(admin.id))) throw notFound();
         prepare(b, categoryNames(b.userId), isOwner);
+        attachLoans(me, List.of(b));
         b.cover = covers.findById(id).map(c -> c.data).orElse(null);
         return b;
     }
@@ -128,6 +137,9 @@ public class BookService {
 
     public void delete(User me, String id) {
         Book b = owned(me, id);
+        if (loans.existsByActiveBookId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "這本書有人申請或借出中，請先收回再刪除");
+        }
         books.delete(b);
         covers.deleteById(id);
     }
@@ -192,6 +204,22 @@ public class BookService {
         if (!isOwner) {
             b.price = null;
             b.buyDate = null;
+        }
+    }
+
+    /** 只有管理員的書會被借；管理員看得到借書人名稱 */
+    private void attachLoans(User me, List<Book> list) {
+        if (list.isEmpty()) return;
+        Map<String, Loan> active = loans.findByActiveBookIdIn(list.stream().map(b -> b.id).toList()).stream()
+                .collect(Collectors.toMap(l -> l.bookId, l -> l, (a, b) -> a));
+        if (active.isEmpty()) return;
+        Map<String, String> names = me.admin
+                ? userRepo.findAllById(active.values().stream().map(l -> l.borrowerId).collect(Collectors.toSet())).stream()
+                        .collect(Collectors.toMap(u -> u.id, u -> u.name == null || u.name.isBlank() ? u.email : u.name))
+                : Map.of();
+        for (Book b : list) {
+            Loan l = active.get(b.id);
+            if (l != null) b.loan = new Book.LoanBrief(l.id, l.status, me.id.equals(l.borrowerId), names.get(l.borrowerId));
         }
     }
 

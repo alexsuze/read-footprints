@@ -26,7 +26,7 @@
     <LegacyImport v-if="auth.isAdmin" />
   </template>
 
-  <p v-else class="text-secondary">租借管理將於階段 4 加入。</p>
+  <LoanManager v-else-if="tab === 'loans'" />
 </template>
 
 <script setup>
@@ -35,6 +35,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import CategoryManager from '../components/CategoryManager.vue'
 import LegacyImport from '../components/LegacyImport.vue'
+import LoanManager from '../components/LoanManager.vue'
 import UserApproval from '../components/UserApproval.vue'
 
 const auth = useAuthStore()

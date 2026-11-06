@@ -23,6 +23,10 @@
               <a v-if="safeUrl" :href="safeUrl" target="_blank" rel="noopener noreferrer">{{ safeUrl }}</a>
               <template v-else>—</template>
             </dd>
+            <template v-if="book.loan">
+              <dt>借閱</dt>
+              <dd><span class="pill" :class="`pill-${book.loan.status}`">{{ LOAN_LABELS[book.loan.status] }}</span><span class="small text-secondary ms-2">{{ book.loan.mine ? '你借的' : book.loan.borrower_name || '' }}</span></dd>
+            </template>
             <template v-if="isOwner">
               <dt class="own">購買</dt>
               <dd class="own">{{ book.buy_date || '—' }} · {{ book.price != null ? `NT$ ${book.price}` : '—' }}</dd>
@@ -31,6 +35,7 @@
           <p v-if="isOwner" class="text-secondary small mb-0">金額與購買日期只有書主看得到</p>
           <div class="actions">
             <button type="button" class="btn btn-outline-primary" @click="$emit('close')">關閉</button>
+            <LoanButtons :book="book" @changed="$emit('changed', $event)" />
             <button v-if="isOwner && !readonly" type="button" class="btn btn-primary" @click="$emit('edit', book)">維護</button>
           </div>
         </div>
@@ -44,14 +49,16 @@
 import { computed, onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
+import { LOAN_LABELS } from '../utils/loan'
 import { spineColor, spineInk } from '../utils/spine'
+import LoanButtons from './LoanButtons.vue'
 
 // 攤開書籍（規劃書第 3 節）：左頁書封，右頁基本資料。書封只在這裡才下載
 const props = defineProps({
   book: { type: Object, required: true },
   readonly: { type: Boolean, default: false } // 總覽只有詳情，沒有維護
 })
-const emit = defineEmits(['close', 'edit'])
+const emit = defineEmits(['close', 'edit', 'changed'])
 
 const auth = useAuthStore()
 const dialog = ref(null)
@@ -142,7 +149,7 @@ onMounted(async () => {
 .info dt { color: var(--rf-ink-2); font-weight: 400; }
 .info dd { margin: 0; overflow-wrap: anywhere; }
 .info .own { color: var(--rf-wood); }
-.actions { margin-top: auto; display: flex; justify-content: flex-end; gap: 10px; }
+.actions { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .fold { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(0, 0, 0, .12); pointer-events: none; }
 
 @keyframes fade { from { opacity: 0; } }

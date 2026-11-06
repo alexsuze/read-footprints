@@ -21,7 +21,8 @@
           >
             <span class="spine-title">{{ book.title }}</span>
           </button>
-          <span v-if="book.read" class="spine-tag">完讀</span>
+          <span v-if="book.loan?.status === 'lent'" class="spine-tag lent">借出</span>
+          <span v-if="book.read" class="spine-tag" :class="{ second: book.loan?.status === 'lent' }">完讀</span>
         </div>
         <div v-if="active === book.id" class="spine-menu">
           <slot name="menu" :book="book" :close="close" />
@@ -169,6 +170,9 @@ function choose (book) {
   overflow: hidden;
   white-space: nowrap;
 }
+
+.spine-tag.lent { background: #8E3B2F; z-index: 1; }
+.spine-tag.second { top: 19px; border-radius: 0; }
 
 .spine-menu {
   position: absolute;

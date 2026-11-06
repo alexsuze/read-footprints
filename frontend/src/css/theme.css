@@ -55,6 +55,10 @@ h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 .pill-pending { background: #F1E3C8; color: var(--rf-wood); }
 .pill-active { background: #E1E7D5; color: #5F6F43; }
 .pill-disabled { background: #E7D3CF; color: var(--rf-vermilion); }
+/* 借閱狀態 */
+.pill-loan, .pill-lent { background: #EED9D3; color: #8E3B2F; }
+.pill-requested { background: #F1E3C8; color: var(--rf-wood); }
+.pill-returned { background: var(--rf-paper-2); color: var(--rf-ink-2); }
 
 /* 統計：KPI 卡與子分頁按鈕列 */
 .kpi .card-body { padding: 14px 16px; }

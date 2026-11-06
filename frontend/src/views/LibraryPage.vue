@@ -29,10 +29,11 @@
   </div>
 
   <section class="card shelf-card">
-    <BookShelf :books="books" :per-row="perRow" :has-menu="isMine" @select="opened = $event">
+    <BookShelf :books="books" :per-row="perRow" :has-menu="isMine || !auth.isAdmin" @select="opened = $event">
       <template #menu="{ book, close }">
         <button type="button" class="btn btn-sm btn-outline-primary" @click="close(); opened = book">詳情</button>
-        <button type="button" class="btn btn-sm btn-primary" @click="close(); openForm(book)">維護</button>
+        <button v-if="isMine" type="button" class="btn btn-sm btn-primary" @click="close(); openForm(book)">維護</button>
+        <LoanButtons v-else :book="book" size="sm" :only="['request']" @changed="close" />
       </template>
     </BookShelf>
     <div v-if="pages > 1" class="d-flex align-items-center justify-content-center gap-3">
@@ -52,6 +53,7 @@ import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookForm from '../components/BookForm.vue'
 import BookShelf from '../components/BookShelf.vue'
+import LoanButtons from '../components/LoanButtons.vue'
 import OpenBook from '../components/OpenBook.vue'
 import { booksToCsv } from '../utils/csv'
 

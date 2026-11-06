@@ -55,4 +55,10 @@ public class Book {
     /** 查詢時由分類表帶入；看管理員書架的人讀不到對方分類 */
     @Transient
     public String categoryName;
+    /** 進行中的借閱（申請中 / 借出中），沒有則為 null。書架掛「借出」標籤、攤開頁按鈕用 */
+    @Transient
+    public LoanBrief loan;
+
+    /** mine：目前使用者是借書人；borrowerName 只有書主（管理員）看得到 */
+    public record LoanBrief(String id, String status, boolean mine, String borrowerName) {}
 }

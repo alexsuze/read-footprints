@@ -25,14 +25,13 @@
     <div class="col-lg-5">
       <section class="card h-100">
         <div class="card-body">
-          <h2 class="h5">租借中</h2>
-          <p class="text-secondary small mb-0">借書功能將於階段 4 加入。</p>
+          <LoanBoard ref="loanBoard" @changed="loadBooks" />
         </div>
       </section>
     </div>
   </div>
 
-  <OpenBook v-if="opened" :book="opened" readonly @close="opened = null" />
+  <OpenBook v-if="opened" :book="opened" readonly @close="opened = null" @changed="loanBoard?.load()" />
 </template>
 
 <script setup>
@@ -40,6 +39,7 @@ import { onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookShelf from '../components/BookShelf.vue'
+import LoanBoard from '../components/LoanBoard.vue'
 import OpenBook from '../components/OpenBook.vue'
 import TodayCalendar from '../components/TodayCalendar.vue'
 
@@ -53,6 +53,7 @@ const loaded = ref(false)
 const activities = ref([])
 const shelf = ref('mine')
 const opened = ref(null)
+const loanBoard = ref(null)
 
 async function loadBooks () {
   const params = { shelf: shelf.value, sort: 'buy_date', order: 'desc', page: 1, size: RECENT }
