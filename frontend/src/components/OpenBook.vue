@@ -31,7 +31,7 @@
           <p v-if="isOwner" class="text-secondary small mb-0">金額與購買日期只有書主看得到</p>
           <div class="actions">
             <button type="button" class="btn btn-outline-primary" @click="$emit('close')">關閉</button>
-            <button v-if="isOwner" type="button" class="btn btn-primary" @click="$emit('edit', book)">維護</button>
+            <button v-if="isOwner && !readonly" type="button" class="btn btn-primary" @click="$emit('edit', book)">維護</button>
           </div>
         </div>
         <div class="fold"></div>
@@ -47,7 +47,10 @@ import { useAuthStore } from '../stores/auth'
 import { spineColor, spineInk } from '../utils/spine'
 
 // 攤開書籍（規劃書第 3 節）：左頁書封，右頁基本資料。書封只在這裡才下載
-const props = defineProps({ book: { type: Object, required: true } })
+const props = defineProps({
+  book: { type: Object, required: true },
+  readonly: { type: Boolean, default: false } // 總覽只有詳情，沒有維護
+})
 const emit = defineEmits(['close', 'edit'])
 
 const auth = useAuthStore()
