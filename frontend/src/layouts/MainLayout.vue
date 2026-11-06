@@ -10,7 +10,7 @@
       </div>
       <ul class="nav flex-column mt-3" :class="{ 'd-none d-md-flex': !open }" @click="open = false">
         <li v-for="m in menu" :key="m.name" class="nav-item">
-          <router-link :to="{ name: m.name }" class="nav-link d-flex align-items-center gap-2" active-class="on">
+          <router-link :to="{ name: m.name }" class="nav-link d-flex align-items-center gap-2" exact-active-class="on">
             <i class="bi" :class="m.icon"></i>{{ m.label }}
             <span v-if="m.name === 'settings' && auth.pendingCount" class="badge rounded-pill text-bg-danger ms-auto">{{ auth.pendingCount }}</span>
           </router-link>

@@ -40,7 +40,7 @@ Google 用戶端 ID 的「已授權的 JavaScript 來源」需包含 `http://loc
 
 ### 前端 → GitHub Pages
 1. repo Settings → Pages → Source 選 **GitHub Actions**。
-2. Settings → Secrets and variables → Actions 新增 `VITE_API_BASE_URL`（Railway 後端網址）、`VITE_GOOGLE_CLIENT_ID`。
+2. Settings → Secrets and variables → Actions 新增 `VITE_API_BASE_URL`（Railway 後端網址，須含 `https://`，結尾不加斜線）、`VITE_GOOGLE_CLIENT_ID`。
 3. push 到 `main` 且 `frontend/` 有變動即自動部署到 `https://alexsuze.github.io/read-footprints/`。
 
 ### 後端 → Railway
@@ -58,6 +58,7 @@ Google 用戶端 ID 的「已授權的 JavaScript 來源」需包含 `http://loc
    | `FRONTEND_URL` | `https://alexsuze.github.io/read-footprints/` |
    | `RESEND_API_KEY` | Resend API Key |
    | `RESEND_FROM_EMAIL` | `onboarding@resend.dev` |
+   | `LEGACY_MONGODB_URI` | 匯入 1.0 資料時才需要，1.0 的 Atlas 連線字串，資料庫固定讀 `book_admin` |
 
 3. push 到 `main` 即自動部署，建置與啟動指令在 `backend/railway.toml`。
 

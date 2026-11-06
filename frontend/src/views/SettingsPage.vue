@@ -8,26 +8,33 @@
     </li>
   </ul>
 
-  <UserApproval v-if="tab === 'users'" />
+  <CategoryManager v-if="tab === 'categories'" />
 
-  <div v-else-if="tab === 'profile'" class="card" style="max-width: 480px">
-    <div class="card-body d-flex align-items-center gap-3">
-      <img v-if="auth.user?.picture" :src="auth.user.picture" alt="" class="rounded-circle" width="56" height="56" referrerpolicy="no-referrer">
-      <div>
-        <div class="fw-medium">{{ auth.user?.name }}</div>
-        <div class="text-secondary small">{{ auth.user?.email }}</div>
-        <span class="pill pill-active mt-1">{{ auth.isAdmin ? '管理員' : '一般使用者' }}</span>
+  <UserApproval v-else-if="tab === 'users'" />
+
+  <template v-else-if="tab === 'profile'">
+    <div class="card mb-3" style="max-width: 480px">
+      <div class="card-body d-flex align-items-center gap-3">
+        <img v-if="auth.user?.picture" :src="auth.user.picture" alt="" class="rounded-circle" width="56" height="56" referrerpolicy="no-referrer">
+        <div>
+          <div class="fw-medium">{{ auth.user?.name }}</div>
+          <div class="text-secondary small">{{ auth.user?.email }}</div>
+          <span class="pill pill-active mt-1">{{ auth.isAdmin ? '管理員' : '一般使用者' }}</span>
+        </div>
       </div>
     </div>
-  </div>
+    <LegacyImport v-if="auth.isAdmin" />
+  </template>
 
-  <p v-else class="text-secondary">分類管理將於階段 1 加入，租借管理於階段 4 加入。</p>
+  <p v-else class="text-secondary">租借管理將於階段 4 加入。</p>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import CategoryManager from '../components/CategoryManager.vue'
+import LegacyImport from '../components/LegacyImport.vue'
 import UserApproval from '../components/UserApproval.vue'
 
 const auth = useAuthStore()
