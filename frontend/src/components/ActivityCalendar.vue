@@ -1,7 +1,6 @@
 <template>
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-    <h2 class="h5 mb-0 text-nowrap">活動日曆</h2>
-    <div class="ms-auto d-flex align-items-center gap-1 text-nowrap">
+    <div class="d-flex align-items-center gap-1 text-nowrap">
       <button type="button" class="btn btn-sm btn-outline-primary" @click="goToday">今天</button>
       <button type="button" class="btn btn-sm btn-outline-primary" aria-label="上個月" @click="shift(-1)"><i class="bi bi-chevron-left"></i></button>
       <span class="rf-serif month text-center">{{ year }} 年 {{ month + 1 }} 月</span>
@@ -46,23 +45,27 @@
       {{ selected.start_date }} ～ {{ selected.end_date }} · {{ activityStatus(selected, now).label }}
       <template v-if="selected.url"> · <a :href="selected.url" target="_blank" rel="noopener noreferrer">活動網址</a></template>
     </div>
-    <MarathonProgress v-if="selected.type === 'marathon'" :activity="selected" />
+    <MarathonProgress v-if="selected.type === 'marathon'" :activity="selected">
+      <AddMinutes v-if="activityStatus(selected, now).key !== 'ended'" :key="selected.id" :activity="selected" />
+    </MarathonProgress>
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import AddMinutes from './AddMinutes.vue'
 import MarathonProgress from './MarathonProgress.vue'
-import { activityStatus, monthWeeks, today, TYPE_LABELS, weekBars } from '../utils/activity'
+import { useToday } from '../composables/useToday'
+import { activityStatus, monthWeeks, TYPE_LABELS, weekBars } from '../utils/activity'
 import { spineInk } from '../utils/spine'
 
-// 單月月曆，活動畫成橫跨日期的色條（規劃書 4.2）
+// 單月月曆，活動畫成橫跨日期的色條，放在活動紀錄頁的「月曆」檢視（規劃書 4.4）
 defineProps({ activities: { type: Array, required: true } })
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
-const now = today()
-const year = ref(Number(now.slice(0, 4)))
-const month = ref(Number(now.slice(5, 7)) - 1)
+const now = useToday()
+const year = ref(Number(now.value.slice(0, 4)))
+const month = ref(Number(now.value.slice(5, 7)) - 1)
 const selected = ref(null)
 const weeks = computed(() => monthWeeks(year.value, month.value))
 
@@ -73,8 +76,8 @@ function shift (delta) {
 }
 
 function goToday () {
-  year.value = Number(now.slice(0, 4))
-  month.value = Number(now.slice(5, 7)) - 1
+  year.value = Number(now.value.slice(0, 4))
+  month.value = Number(now.value.slice(5, 7)) - 1
 }
 </script>
 

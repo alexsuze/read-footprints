@@ -20,7 +20,7 @@
 
   <div class="row g-3">
     <div class="col-lg-7">
-      <section class="card h-100"><div class="card-body"><ActivityCalendar :activities="activities" /></div></section>
+      <section class="card h-100"><div class="card-body"><TodayCalendar :activities="activities" /></div></section>
     </div>
     <div class="col-lg-5">
       <section class="card h-100">
@@ -39,9 +39,9 @@
 import { onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
-import ActivityCalendar from '../components/ActivityCalendar.vue'
 import BookShelf from '../components/BookShelf.vue'
 import OpenBook from '../components/OpenBook.vue'
+import TodayCalendar from '../components/TodayCalendar.vue'
 
 const RECENT = 12
 const PER_ROW = window.matchMedia('(max-width: 767.98px)').matches ? 6 : RECENT

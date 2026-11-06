@@ -7,10 +7,12 @@ export const today = () => new Date().toLocaleDateString('sv')
 const DAY_MS = 86400000
 const shortDate = iso => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
 
+export const daysLeft = (a, now) => (Date.parse(a.end_date) - Date.parse(now)) / DAY_MS
+
 export function activityStatus (a, now) {
   if (now < a.start_date) return { key: 'upcoming', label: `未開始 · ${shortDate(a.start_date)} 起` }
   if (now > a.end_date) return { key: 'ended', label: '已結束' }
-  return { key: 'ongoing', label: `進行中 · 剩 ${(Date.parse(a.end_date) - Date.parse(now)) / DAY_MS} 天` }
+  return { key: 'ongoing', label: `進行中 · 剩 ${daysLeft(a, now)} 天` }
 }
 
 // 月曆每週 7 個日期，從週日開始，含前後月補齊
