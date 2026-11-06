@@ -36,6 +36,11 @@ public class AdminController {
         return importer.run(admin);
     }
 
+    @GetMapping("/import-legacy/progress")
+    public LegacyImporter.Progress importProgress(@RequestAttribute(AuthFilter.USER) User admin) {
+        return importer.progress(admin);
+    }
+
     @GetMapping("/users")
     public List<User> list(@RequestAttribute(AuthFilter.USER) User admin) {
         return service.list(admin);

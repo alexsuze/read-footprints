@@ -64,11 +64,23 @@ public class LegacyImporter {
 
     public record Result(Count categories, Count books, Count readingLogs, Count activities, int undecodableCovers) {}
 
+    /** 只算書籍，其他幾項都在幾秒內跑完。 */
+    public record Progress(int done, int total) {}
+
+    // ponytail: 進度放記憶體，Railway 只有一個實例；多實例才需要存資料庫
+    private volatile Progress progress = new Progress(0, 0);
+
+    public Progress progress(User admin) {
+        UserService.requireAdmin(admin);
+        return progress;
+    }
+
     public Result run(User admin) {
         UserService.requireAdmin(admin);
         if (uri == null || uri.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "伺服器尚未設定 LEGACY_MONGODB_URI");
         }
+        progress = new Progress(0, 0);
         try (MongoClient client = MongoClients.create(uri)) {
             MongoDatabase db = client.getDatabase(LEGACY_DB);
             Map<Integer, String> categoryIds = new HashMap<>();
@@ -114,8 +126,10 @@ public class LegacyImporter {
         Set<Integer> done = new HashSet<>();
         mongo.find(mine, Book.class).forEach(b -> done.add(b.legacyId));
 
+        int total = (int) db.getCollection("book_data").countDocuments(ALIVE);
         int imported = 0, skipped = 0;
         for (Document d : db.getCollection("book_data").find(ALIVE)) {
+            progress = new Progress(imported + skipped, total);
             int legacyId = number(d.get("id"));
             if (!done.add(legacyId)) {
                 skipped++;
@@ -145,6 +159,7 @@ public class LegacyImporter {
             if (hasCover) covers.save(new BookCover(b.id, image));
             imported++;
         }
+        progress = new Progress(imported + skipped, total);
         return new Count(imported, skipped);
     }
 
