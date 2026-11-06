@@ -55,3 +55,10 @@ h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 .pill-pending { background: #F1E3C8; color: var(--rf-wood); }
 .pill-active { background: #E1E7D5; color: #5F6F43; }
 .pill-disabled { background: #E7D3CF; color: var(--rf-vermilion); }
+
+/* 統計：KPI 卡與子分頁按鈕列 */
+.kpi .card-body { padding: 14px 16px; }
+.kpi-label { font-size: 13px; color: var(--rf-ink-2); }
+.kpi-value { font-size: 30px; line-height: 1.3; color: var(--rf-ink); }
+.kpi-value.small-value { font-size: 24px; }
+.sub-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
