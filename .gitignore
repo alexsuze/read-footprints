@@ -1,0 +1,19 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.local
+
+# node / build
+node_modules/
+frontend/dist/
+
+# Claude Code 本機設定
+.claude/settings.local.json

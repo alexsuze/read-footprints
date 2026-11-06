@@ -1,0 +1,57 @@
+/* 日式簡約書房配色（規劃書第 11 節）。覆蓋 Bootstrap 變數，之後調色只改這裡 */
+:root {
+  --rf-paper: #F5F0E6;
+  --rf-paper-2: #EBE4D6;
+  --rf-card: #FBF8F1;
+  --rf-line: #E2DACA;
+  --rf-line-2: #C9BFA9;
+  --rf-ink: #2B2A28;
+  --rf-ink-2: #6F6A60;
+  --rf-wood: #8B6B4A;
+  --rf-wood-2: #6E5338;
+  --rf-matcha: #7A8C5C;
+  --rf-vermilion: #B5493A;
+  --rf-slate: #5B6B7A;
+  --rf-serif: 'Noto Serif TC', serif;
+  --rf-sans: 'Noto Sans TC', system-ui, sans-serif;
+
+  --bs-body-bg: var(--rf-paper);
+  --bs-body-color: var(--rf-ink);
+  --bs-body-font-family: var(--rf-sans);
+  --bs-secondary-color: var(--rf-ink-2);
+  --bs-border-color: var(--rf-line);
+  --bs-link-color: var(--rf-wood);
+  --bs-link-hover-color: var(--rf-wood-2);
+  --bs-link-color-rgb: 139, 107, 74;
+  --bs-link-hover-color-rgb: 110, 83, 56;
+  --bs-primary: var(--rf-wood);
+  --bs-primary-rgb: 139, 107, 74;
+  --bs-success: var(--rf-matcha);
+  --bs-success-rgb: 122, 140, 92;
+  --bs-danger: var(--rf-vermilion);
+  --bs-danger-rgb: 181, 73, 58;
+  --bs-border-radius: 5px;
+}
+
+h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
+
+.btn-primary { --bs-btn-bg: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood-2); --bs-btn-hover-border-color: var(--rf-wood-2); --bs-btn-active-bg: var(--rf-wood-2); --bs-btn-active-border-color: var(--rf-wood-2); --bs-btn-color: var(--rf-paper); --bs-btn-hover-color: var(--rf-paper); }
+.btn-outline-primary { --bs-btn-color: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood); --bs-btn-hover-border-color: var(--rf-wood); --bs-btn-hover-color: var(--rf-paper); --bs-btn-active-bg: var(--rf-wood); --bs-btn-active-border-color: var(--rf-wood); }
+.btn-outline-success { --bs-btn-color: var(--rf-matcha); --bs-btn-border-color: var(--rf-matcha); --bs-btn-hover-bg: var(--rf-matcha); --bs-btn-hover-border-color: var(--rf-matcha); }
+.btn-outline-danger { --bs-btn-color: var(--rf-vermilion); --bs-btn-border-color: var(--rf-vermilion); --bs-btn-hover-bg: var(--rf-vermilion); --bs-btn-hover-border-color: var(--rf-vermilion); }
+.btn-check:checked + .btn-outline-primary { background: var(--rf-wood); color: var(--rf-paper); }
+
+.card { --bs-card-bg: var(--rf-card); --bs-card-border-color: var(--rf-line); --bs-card-border-radius: 6px; }
+.form-control, .form-select { background-color: #FFFDF8; border-color: var(--rf-line-2); }
+.form-control:focus, .form-select:focus { border-color: var(--rf-wood); box-shadow: 0 0 0 .2rem rgba(139, 107, 74, .15); }
+.table { --bs-table-bg: transparent; --bs-table-border-color: var(--rf-line); }
+.table th { color: var(--rf-ink-2); font-weight: 500; }
+.nav-tabs { --bs-nav-tabs-border-color: var(--rf-line-2); --bs-nav-tabs-link-active-color: var(--rf-wood); --bs-nav-tabs-link-active-bg: transparent; --bs-nav-tabs-link-active-border-color: transparent transparent var(--rf-wood); --bs-nav-link-color: var(--rf-ink-2); --bs-nav-link-hover-color: var(--rf-wood); }
+.nav-tabs .nav-link.active { border-bottom-width: 2px; }
+.badge.text-bg-primary { background-color: var(--rf-wood) !important; }
+
+/* 狀態標籤 */
+.pill { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+.pill-pending { background: #F1E3C8; color: var(--rf-wood); }
+.pill-active { background: #E1E7D5; color: #5F6F43; }
+.pill-disabled { background: #E7D3CF; color: var(--rf-vermilion); }
