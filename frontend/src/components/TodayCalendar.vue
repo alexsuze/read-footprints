@@ -1,15 +1,24 @@
 <template>
   <h2 class="h5 mb-3">活動日曆</h2>
   <div class="today-wrap">
-    <div class="tearoff" role="img" :aria-label="`今天 ${now}，${weekday}`">
-      <div class="band">
-        <span v-for="i in 4" :key="i" class="ring"></span>
-        <span class="rf-serif month">{{ monthLabel }}</span>
+    <div class="today-col">
+      <div class="tearoff">
+        <div class="band" aria-hidden="true">
+          <span v-for="i in 4" :key="i" class="ring"></span>
+          <span class="rf-serif month">{{ monthLabel }}</span>
+        </div>
+        <div class="page">
+          <span class="visually-hidden">今天 {{ now }}</span>
+          <span class="rf-serif day" aria-hidden="true">{{ Number(now.slice(8)) }}</span>
+          <span class="weekday">{{ weekday }}</span>
+          <RouterLink v-if="onlyYesterday" :to="hoursLink(missing[0])" class="missing mt-1">尚未填入閱讀時數</RouterLink>
+        </div>
       </div>
-      <div class="page">
-        <span class="rf-serif day">{{ Number(now.slice(8)) }}</span>
-        <span class="weekday">{{ weekday }}</span>
-      </div>
+      <ul v-if="missing.length && !onlyYesterday" class="missing-list list-unstyled mb-0">
+        <li v-for="d in missing" :key="d">
+          <RouterLink :to="hoursLink(d)" class="missing"><i class="bi bi-exclamation-circle me-1"></i>{{ d.slice(5) }} 尚未填入閱讀時數</RouterLink>
+        </li>
+      </ul>
     </div>
 
     <div class="ongoing">
@@ -42,19 +51,34 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AddMinutes from './AddMinutes.vue'
 import MarathonProgress from './MarathonProgress.vue'
 import { useToday } from '../composables/useToday'
+import http from '../api/http'
 import { daysLeft, TYPE_LABELS } from '../utils/activity'
+import { missingLogDates, shiftDate } from '../utils/stats'
 
 // 總覽的撕頁日曆：只顯示今天與進行中的活動，點活動展開資訊，馬拉松可直接登錄分鐘（規劃書 4.2）
+// 前 7 天（不含今天）沒填閱讀時數會提醒；只缺昨天時直接寫在日曆上
 const props = defineProps({ activities: { type: Array, required: true } })
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 const now = useToday()
 const opened = ref(null)
+const logDates = ref(null)
+
+const missing = computed(() => (logDates.value ? missingLogDates(logDates.value, now.value) : []))
+const onlyYesterday = computed(() => missing.value.length === 1 && missing.value[0] === shiftDate(now.value, -1))
+const hoursLink = d => ({ name: 'stats', query: { tab: 'hours', date: d } })
+
+// 換日時重抓
+watch(now, async today => {
+  const params = { from: shiftDate(today, -7), to: shiftDate(today, -1) }
+  const { data } = await http.get('/reading-logs', { params, silent: true })
+  logDates.value = data.map(l => l.date)
+}, { immediate: true })
 
 const date = computed(() => new Date(`${now.value}T00:00:00`))
 const monthLabel = computed(() => date.value.toLocaleDateString('en-US', { month: 'long' }))
@@ -74,7 +98,8 @@ function toggle (id) {
 
 <style scoped>
 .today-wrap { display: flex; gap: 24px; align-items: flex-start; }
-.tearoff { flex: 0 0 150px; filter: drop-shadow(0 2px 3px rgba(43, 42, 40, .15)); }
+.today-col { flex: 0 0 150px; }
+.tearoff { filter: drop-shadow(0 2px 3px rgba(43, 42, 40, .15)); }
 .band {
   position: relative;
   height: 44px;
@@ -130,8 +155,12 @@ function toggle (id) {
 .mini { height: 4px; margin-top: 6px; background: var(--rf-paper-2); border-radius: 2px; overflow: hidden; }
 .mini div { height: 100%; }
 .detail { margin-top: 8px; }
+.missing { font-size: 12px; color: var(--rf-vermilion); text-decoration: none; }
+.missing:hover { text-decoration: underline; }
+.missing-list { margin-top: 12px; }
+.missing-list li { padding: 1px 0; }
 @media (max-width: 575.98px) {
   .today-wrap { flex-direction: column; align-items: stretch; }
-  .tearoff { flex: none; width: 150px; align-self: center; }
+  .today-col { flex: none; width: 170px; align-self: center; }
 }
 </style>

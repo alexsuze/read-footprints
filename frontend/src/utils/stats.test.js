@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { completedByPeriod, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
+import { completedByPeriod, missingLogDates, shiftDate, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
 
 const books = [
   { category_name: '小說', publisher: '皇冠', authors: ['東野圭吾'], translators: ['王蘊潔'], price: 300, buy_date: '2024-03-01', read: true, read_date: '2024-05-02' },
@@ -54,4 +54,12 @@ test('milestone 等級與進度', () => {
   assert.equal(milestone(1500).current.name, '鑽石')
   assert.equal(milestone(2000).next, null)
   assert.equal(milestone(2000).progress, 100)
+})
+
+test('前 7 天未填的日期，跨月、舊到新、不含今天', () => {
+  assert.equal(shiftDate('2026-03-01', -1), '2026-02-28')
+  assert.deepEqual(missingLogDates(['2026-02-24', '2026-02-26', '2026-02-27', '2026-02-28', '2026-03-01'], '2026-03-01'),
+    ['2026-02-22', '2026-02-23', '2026-02-25'])
+  assert.deepEqual(missingLogDates([], '2026-11-06').length, 7)
+  assert.deepEqual(missingLogDates(['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04'], '2026-11-06'), ['2026-11-05'])
 })

@@ -105,3 +105,16 @@ export function milestone (days) {
   const progress = next ? Math.round((days - current.days) * 100 / (next.days - current.days)) : 100
   return { current, next, progress, index }
 }
+
+// 日期加減天數（yyyy-MM-dd）
+export function shiftDate (date, days) {
+  const d = new Date(`${date}T00:00:00`)
+  d.setDate(d.getDate() + days)
+  return d.toLocaleDateString('sv')
+}
+
+// 前 days 天（不含今天）沒有閱讀紀錄的日期，舊到新
+export function missingLogDates (logDates, today, days = 7) {
+  const filled = new Set(logDates)
+  return Array.from({ length: days }, (_, i) => shiftDate(today, i - days)).filter(d => !filled.has(d))
+}

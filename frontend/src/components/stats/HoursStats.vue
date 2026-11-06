@@ -66,6 +66,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import http from '../../api/http'
 import { toast } from '../AppToast.vue'
 import EChart from '../EChart.vue'
@@ -84,7 +85,10 @@ const now = today()
 const logs = ref([])
 const loaded = ref(false)
 const saving = ref(false)
-const form = ref({ date: now, minutes: '' })
+// 總覽的「尚未填入閱讀時數」會帶 ?date= 過來，直接選好那一天
+const route = useRoute()
+const linked = /^\d{4}-\d{2}-\d{2}$/.test(route.query.date || '') && route.query.date <= now ? route.query.date : now
+const form = ref({ date: linked, minutes: '' })
 const editing = ref(null)
 const editMinutes = ref('')
 const page = ref(1)
