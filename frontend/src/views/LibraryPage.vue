@@ -29,7 +29,7 @@
   </div>
 
   <section class="card shelf-card">
-    <BookShelf :books="books" :per-row="perRow" :has-menu="isMine || !auth.isAdmin" @select="opened = $event">
+    <BookShelf :books="books" :per-row="perRow" :has-menu="isMine || !auth.isAdmin" :empty-text="emptyText" @select="opened = $event">
       <template #menu="{ book, close }">
         <button type="button" class="btn btn-sm btn-outline-primary" @click="close(); opened = book">詳情</button>
         <button v-if="isMine" type="button" class="btn btn-sm btn-primary" @click="close(); openForm(book)">維護</button>
@@ -91,6 +91,10 @@ const editing = ref(null)
 const exporting = ref(false)
 
 const isMine = computed(() => shelf.value === 'mine')
+const emptyText = computed(() => {
+  if (keyword.value.trim() || read.value !== 'all') return '找不到符合條件的書'
+  return isMine.value ? '書架還空著，按「新增書籍」放上第一本書' : '管理員書架還沒有書'
+})
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PER_SHELF)))
 const sortOptions = computed(() => SORTS.filter(s => isMine.value || s.value !== 'price'))
 const query = () => ({ shelf: shelf.value, keyword: keyword.value, read: read.value, sort: sort.value, order: order.value })

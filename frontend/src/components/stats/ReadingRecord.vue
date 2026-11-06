@@ -28,7 +28,7 @@ const ratio = computed(() => (props.summary.total_books ? props.summary.read_boo
 const books = computed(() => [
   { label: '總書目數', value: props.summary.total_books.toLocaleString() },
   { label: '已讀完', value: props.summary.read_books.toLocaleString() },
-  { label: '完讀比例', value: `${ratio.value.toFixed(1)}%`, color: ratio.value < 66.7 ? 'var(--rf-vermilion)' : 'var(--rf-matcha)' },
+  { label: '完讀比例', value: `${ratio.value.toFixed(1)}%`, color: !props.summary.total_books ? undefined : ratio.value < 66.7 ? 'var(--rf-vermilion)' : 'var(--rf-matcha)' },
   { label: '本年完讀', value: props.summary.read_this_year.toLocaleString() }
 ])
 const time = computed(() => [

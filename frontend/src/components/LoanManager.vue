@@ -11,7 +11,7 @@
   <div class="card">
     <div class="card-body table-responsive">
       <p v-if="loaded && !shown.length" class="text-secondary text-center py-4 mb-0">沒有借閱紀錄</p>
-      <table v-else class="table align-middle mb-0">
+      <table v-else class="table align-middle mb-0 loan-table">
         <thead>
           <tr><th>書名</th><th>借書人</th><th>狀態</th><th>申請</th><th>借出</th><th>結束</th><th></th></tr>
         </thead>
@@ -73,3 +73,8 @@ async function load () {
 
 onMounted(load)
 </script>
+
+<style scoped>
+/* 手機上表格左右捲動，不把欄位擠成直排 */
+.loan-table { min-width: 760px; }
+</style>

@@ -2,7 +2,24 @@
 
 個人閱讀足跡管理系統 2.0：擬真書架、閱讀活動、閱讀統計、向管理員借書。Google 登入、管理員核准制。
 規劃書見 [Doc/系統規劃書.md](Doc/系統規劃書.md)，開發進度見 [Doc/開發進度.md](Doc/開發進度.md)。
-前身為 [book-review](https://github.com/alexsuze/book-review) 1.x。
+前身為 [book-review](https://github.com/alexsuze/book-review) 1.x，1.0 資料已於 2026-11-06 匯入（匯入功能已移除）。
+
+## 功能
+
+| 頁面 | 內容 |
+|------|------|
+| 總覽 | 近期購買書架、撕頁日曆（今天、進行中活動、未填閱讀時數提醒）、租借中 |
+| 圖書館 | 擬真書架、搜尋排序篩選、新增 / 維護、CSV 匯出、向管理員借書 |
+| 活動紀錄 | 馬拉松 / 問答活動，列表或月曆檢視，登錄分鐘 |
+| 閱讀統計 | 閱讀紀錄、時數統計（每日分鐘維護）、購買分析、完讀分析、閱讀狀況（連續閱讀里程碑） |
+| 設定 | 分類管理、使用者核准與租借管理（管理員）、個人資料 |
+
+## 測試
+
+```bash
+cd backend && ./mvnw package     # 含單元測試
+cd frontend && npm test          # src/utils 的計算邏輯
+```
 
 ## Repo 結構
 
@@ -58,7 +75,6 @@ Google 用戶端 ID 的「已授權的 JavaScript 來源」需包含 `http://loc
    | `FRONTEND_URL` | `https://alexsuze.github.io/read-footprints/` |
    | `RESEND_API_KEY` | Resend API Key |
    | `RESEND_FROM_EMAIL` | `onboarding@resend.dev` |
-   | `LEGACY_MONGODB_URI` | 匯入 1.0 資料時才需要，1.0 的 Atlas 連線字串，資料庫固定讀 `book_admin` |
 
 3. push 到 `main` 即自動部署，建置與啟動指令在 `backend/railway.toml`。
 

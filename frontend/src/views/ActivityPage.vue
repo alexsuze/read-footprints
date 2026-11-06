@@ -1,9 +1,9 @@
 <template>
-  <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3">
     <h1 class="h3 mb-0">活動紀錄</h1>
-    <span class="text-secondary small">進行中 {{ counts.ongoing }} · 已結束 {{ counts.ended }}</span>
-    <div class="btn-group ms-auto" role="group" aria-label="檢視方式">
-      <button v-for="v in VIEWS" :key="v.value" type="button" class="btn btn-outline-primary text-nowrap" :class="{ active: view === v.value }" @click="setView(v.value)"><i class="bi me-1" :class="v.icon"></i>{{ v.label }}</button>
+    <span class="text-secondary small me-auto me-md-0">進行中 {{ counts.ongoing }} · 已結束 {{ counts.ended }}</span>
+    <div class="btn-group ms-md-auto" role="group" aria-label="檢視方式">
+      <button v-for="v in VIEWS" :key="v.value" type="button" class="btn btn-outline-primary text-nowrap" :class="{ active: view === v.value }" :aria-label="v.label" :title="v.label" @click="setView(v.value)"><i class="bi" :class="v.icon"></i><span class="d-none d-sm-inline ms-1">{{ v.label }}</span></button>
     </div>
     <div class="btn-group" role="group" aria-label="活動種類">
       <button v-for="f in FILTERS" :key="f.value" type="button" class="btn btn-outline-primary text-nowrap" :class="{ active: filter === f.value }" @click="filter = f.value">{{ f.label }}</button>
@@ -13,7 +13,7 @@
 
   <section v-if="view === 'calendar'" class="card"><div class="card-body"><ActivityCalendar :activities="shown" /></div></section>
 
-  <p v-else-if="loaded && !shown.length" class="text-secondary text-center py-5">還沒有活動</p>
+  <p v-else-if="loaded && !shown.length" class="text-secondary text-center py-5">{{ activities.length ? '沒有這個種類的活動' : '還沒有活動，按「新增活動」記下第一個閱讀活動' }}</p>
 
   <template v-else>
     <section

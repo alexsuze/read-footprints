@@ -16,5 +16,5 @@ public class Category {
     public String userId;
     public String name;
     @Field("legacy_id")
-    public Integer legacyId;
+    public Integer legacyId; // 1.0 的 id，匯入時用；匯入功能已移除，舊資料保留
 }

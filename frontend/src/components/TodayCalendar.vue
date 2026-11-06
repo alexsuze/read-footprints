@@ -57,6 +57,7 @@ import AddMinutes from './AddMinutes.vue'
 import MarathonProgress from './MarathonProgress.vue'
 import { useToday } from '../composables/useToday'
 import http from '../api/http'
+import { useAuthStore } from '../stores/auth'
 import { daysLeft, TYPE_LABELS } from '../utils/activity'
 import { missingLogDates, shiftDate } from '../utils/stats'
 
@@ -67,9 +68,12 @@ const props = defineProps({ activities: { type: Array, required: true } })
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 const now = useToday()
 const opened = ref(null)
+const auth = useAuthStore()
 const logDates = ref(null)
 
-const missing = computed(() => (logDates.value ? missingLogDates(logDates.value, now.value) : []))
+// 加入之前的日子不提醒（新帳號第一天不會冒出 7 條）
+const joined = auth.user?.created_at ? new Date(auth.user.created_at).toLocaleDateString('sv') : ''
+const missing = computed(() => (logDates.value ? missingLogDates(logDates.value, now.value).filter(d => d >= joined) : []))
 const onlyYesterday = computed(() => missing.value.length === 1 && missing.value[0] === shiftDate(now.value, -1))
 const hoursLink = d => ({ name: 'stats', query: { tab: 'hours', date: d } })
 

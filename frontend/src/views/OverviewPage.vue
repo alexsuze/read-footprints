@@ -14,7 +14,12 @@
           <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" :class="{ active: shelf === 'admin' }" @click="setShelf('admin')">管理員書架</button>
         </div>
       </div>
-      <BookShelf v-if="loaded" :books="books" :per-row="PER_ROW" @select="opened = $event" />
+      <BookShelf v-if="loaded" :books="books" :per-row="PER_ROW" @select="opened = $event">
+        <template #empty>
+          <template v-if="shelf === 'mine'">書架還空著，<RouterLink :to="{ name: 'library' }">到圖書館新增第一本書</RouterLink></template>
+          <template v-else>管理員書架還沒有書</template>
+        </template>
+      </BookShelf>
     </div>
   </section>
 
@@ -36,6 +41,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookShelf from '../components/BookShelf.vue'

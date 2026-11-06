@@ -62,7 +62,3 @@ watch(tab, t => {
 }, { immediate: true })
 watch(() => route.query.tab, t => { if (valid(t)) tab.value = t })
 </script>
-
-<style scoped>
-.tabs-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
-</style>

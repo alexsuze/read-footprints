@@ -55,5 +55,8 @@ onMounted(() => auth.loadPending().catch(() => {}))
 .nav-link.on { background: var(--rf-paper); color: var(--rf-wood); border-left-color: var(--rf-wood); }
 .user { border-top: 1px solid #D9D0BE; padding-top: 12px; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--rf-wood); color: var(--rf-paper); object-fit: cover; flex: none; }
-@media (max-width: 767.98px) { .side { max-width: none; flex-basis: 100%; border-right: 0; border-bottom: 1px solid #D9D0BE; padding: 14px 16px; } }
+@media (max-width: 767.98px) {
+  .layout { align-content: flex-start; } /* 側欄換行到上方時不要被撐高 */
+  .side { max-width: none; flex-basis: 100%; border-right: 0; border-bottom: 1px solid #D9D0BE; padding: 14px 16px; }
+}
 </style>

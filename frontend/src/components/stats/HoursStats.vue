@@ -58,7 +58,8 @@
             </div>
           </div>
         </div>
-        <EChart :option="option" :height="340" :min-width="mode === 'month' ? 420 : 0" />
+        <p v-if="!periodTotal" class="text-secondary text-center py-5 mb-0">{{ mode === 'month' ? `${year} 年沒有閱讀紀錄` : '還沒有閱讀紀錄' }}</p>
+        <EChart v-else :option="option" :height="340" :min-width="mode === 'month' ? 420 : 0" />
       </div></section>
     </div>
   </div>

@@ -13,7 +13,8 @@
       <section class="card h-100">
         <div class="card-body">
           <h2 class="h6 mb-2">{{ label }}排行<span class="text-secondary small fw-normal ms-2">共 {{ items.length }} 項</span></h2>
-          <div class="table-wrap">
+          <p v-if="!items.length" class="text-secondary text-center py-5 mb-0">沒有資料</p>
+          <div v-else class="table-wrap">
             <table class="table table-sm mb-0">
               <thead><tr><th class="rank">名次</th><th>名稱</th><th class="text-end">本數</th><th class="text-end">占比</th></tr></thead>
               <tbody>

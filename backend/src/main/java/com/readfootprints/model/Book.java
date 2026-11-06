@@ -45,7 +45,7 @@ public class Book {
     @Field("spine_color")
     public String spineColor;
     @Field("legacy_id")
-    public Integer legacyId;
+    public Integer legacyId; // 1.0 的 id，匯入時用；匯入功能已移除，舊資料保留
     @Field("created_at")
     public Instant createdAt;
 

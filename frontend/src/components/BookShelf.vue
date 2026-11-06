@@ -1,5 +1,5 @@
 <template>
-  <p v-if="!books.length" class="text-secondary text-center py-5 mb-0">{{ emptyText }}</p>
+  <p v-if="!books.length" class="text-secondary text-center py-5 mb-0"><slot name="empty">{{ emptyText }}</slot></p>
   <div v-else class="shelves">
     <div v-for="(row, i) in rows" :key="i" class="shelf">
       <span class="bookend" aria-hidden="true"></span>

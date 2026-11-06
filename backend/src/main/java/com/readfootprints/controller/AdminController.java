@@ -1,12 +1,10 @@
 package com.readfootprints.controller;
 
 import com.readfootprints.config.AuthFilter;
-import com.readfootprints.migration.LegacyImporter;
 import com.readfootprints.model.User;
 import com.readfootprints.service.UserService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,28 +15,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 管理員 API：使用者列表、核准 / 停用（規劃書 4.6）、匯入 1.0 資料（第 9 節）。非管理員回 403。
+ * 管理員 API：使用者列表、核准 / 停用（規劃書 4.6）。非管理員回 403。
+ * 1.0 資料匯入已在階段 5 移除（規劃書第 9 節），需要時可從 git 歷史找回 LegacyImporter。
  */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
     private final UserService service;
-    private final LegacyImporter importer;
 
-    public AdminController(UserService service, LegacyImporter importer) {
+    public AdminController(UserService service) {
         this.service = service;
-        this.importer = importer;
-    }
-
-    @PostMapping("/import-legacy")
-    public LegacyImporter.Result importLegacy(@RequestAttribute(AuthFilter.USER) User admin) {
-        return importer.run(admin);
-    }
-
-    @GetMapping("/import-legacy/progress")
-    public LegacyImporter.Progress importProgress(@RequestAttribute(AuthFilter.USER) User admin) {
-        return importer.progress(admin);
     }
 
     @GetMapping("/users")

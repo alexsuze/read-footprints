@@ -36,7 +36,7 @@
 h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 
 .btn-primary { --bs-btn-bg: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood-2); --bs-btn-hover-border-color: var(--rf-wood-2); --bs-btn-active-bg: var(--rf-wood-2); --bs-btn-active-border-color: var(--rf-wood-2); --bs-btn-color: var(--rf-paper); --bs-btn-hover-color: var(--rf-paper); }
-.btn-outline-primary { --bs-btn-color: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood); --bs-btn-hover-border-color: var(--rf-wood); --bs-btn-hover-color: var(--rf-paper); --bs-btn-active-bg: var(--rf-wood); --bs-btn-active-border-color: var(--rf-wood); }
+.btn-outline-primary { --bs-btn-disabled-color: var(--rf-wood); --bs-btn-disabled-border-color: var(--rf-wood); --bs-btn-color: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood); --bs-btn-hover-border-color: var(--rf-wood); --bs-btn-hover-color: var(--rf-paper); --bs-btn-active-bg: var(--rf-wood); --bs-btn-active-border-color: var(--rf-wood); }
 .btn-outline-success { --bs-btn-color: var(--rf-matcha); --bs-btn-border-color: var(--rf-matcha); --bs-btn-hover-bg: var(--rf-matcha); --bs-btn-hover-border-color: var(--rf-matcha); }
 .btn-outline-danger { --bs-btn-color: var(--rf-vermilion); --bs-btn-border-color: var(--rf-vermilion); --bs-btn-hover-bg: var(--rf-vermilion); --bs-btn-hover-border-color: var(--rf-vermilion); }
 .btn-check:checked + .btn-outline-primary { background: var(--rf-wood); color: var(--rf-paper); }
@@ -48,6 +48,9 @@ h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 .table th { color: var(--rf-ink-2); font-weight: 500; }
 .nav-tabs { --bs-nav-tabs-border-color: var(--rf-line-2); --bs-nav-tabs-link-active-color: var(--rf-wood); --bs-nav-tabs-link-active-bg: transparent; --bs-nav-tabs-link-active-border-color: transparent transparent var(--rf-wood); --bs-nav-link-color: var(--rf-ink-2); --bs-nav-link-hover-color: var(--rf-wood); }
 .nav-tabs .nav-link.active { border-bottom-width: 2px; }
+/* 分頁太多時（手機）左右捲動，不換行 */
+.tabs-scroll { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tabs-scroll .nav-link { white-space: nowrap; }
 .badge.text-bg-primary { background-color: var(--rf-wood) !important; }
 
 /* 狀態標籤 */
