@@ -7,7 +7,6 @@
         v-for="book in row"
         :key="book.id"
         class="spine-slot"
-        :class="{ open: active === book.id }"
         :style="{ width: `${spineWidth(book.word_count)}px` }"
       >
         <div class="book" :style="{ height: `${spineHeight(book.title)}px` }">
@@ -17,49 +16,36 @@
             :class="{ read: book.read }"
             :title="book.title"
             :style="{ backgroundColor: spineColor(book), color: spineInk(spineColor(book)) }"
-            @click="choose(book)"
+            @click="$emit('select', book)"
           >
             <span class="spine-title">{{ book.title }}</span>
           </button>
           <span v-if="book.loan?.status === 'lent'" class="spine-tag lent">借出</span>
           <span v-if="book.read" class="spine-tag" :class="{ second: book.loan?.status === 'lent' }">完讀</span>
         </div>
-        <div v-if="active === book.id" class="spine-menu">
-          <slot name="menu" :book="book" :close="close" />
-        </div>
       </div>
       <span class="bookend" aria-hidden="true"></span>
     </div>
   </div>
-  <div v-if="active" class="spine-backdrop" @click="close"></div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { spineColor, spineHeight, spineInk, spineWidth } from '../utils/spine'
 
-// 總覽與圖書館共用（規劃書第 3 節）。有 menu 插槽且 hasMenu 時，點書先彈按鈕，否則直接 select
+// 總覽與圖書館共用（規劃書第 3 節）。點書直接 select，由頁面攤開書籍（維護、借書按鈕都在攤開頁）
 const props = defineProps({
   books: { type: Array, required: true },
   perRow: { type: Number, default: 10 },
-  hasMenu: { type: Boolean, default: false },
   emptyText: { type: String, default: '這個書架還沒有書' }
 })
-const emit = defineEmits(['select'])
-
-const active = ref(null)
-const close = () => { active.value = null }
+defineEmits(['select'])
 
 const rows = computed(() => {
   const out = []
   for (let i = 0; i < props.books.length; i += props.perRow) out.push(props.books.slice(i, i + props.perRow))
   return out
 })
-
-function choose (book) {
-  if (props.hasMenu) active.value = active.value === book.id ? null : book.id
-  else emit('select', book)
-}
 </script>
 
 <style scoped>
@@ -107,9 +93,8 @@ function choose (book) {
 
 /* 位置與抽出動畫放外層，已讀的灰階只作用在書脊本體，完讀標籤保持綠色 */
 .spine-slot { flex: 0 1 auto; min-width: 18px; position: relative; }
-.spine-slot.open { z-index: 20; }
 .book { position: relative; transition: transform .18s; }
-.spine-slot:hover .book, .spine-slot.open .book { transform: translateY(-18px) translateX(-1px); }
+.spine-slot:hover .book { transform: translateY(-18px) translateX(-1px); }
 
 .spine {
   display: flex;
@@ -174,21 +159,6 @@ function choose (book) {
 .spine-tag.lent { background: #8E3B2F; z-index: 1; }
 .spine-tag.second { top: 19px; border-radius: 0; }
 
-.spine-menu {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 24px);
-  transform: translateX(-50%);
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  background: var(--rf-card);
-  border: 1px solid var(--rf-line-2);
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(60, 40, 20, .15);
-  white-space: nowrap;
-}
-.spine-backdrop { position: fixed; inset: 0; z-index: 10; }
 
 @media (max-width: 767.98px) {
   .shelf { gap: 3px; }

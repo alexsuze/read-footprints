@@ -29,13 +29,7 @@
   </div>
 
   <section class="card shelf-card">
-    <BookShelf :books="books" :per-row="perRow" :has-menu="isMine || !auth.isAdmin" :empty-text="emptyText" @select="opened = $event">
-      <template #menu="{ book, close }">
-        <button type="button" class="btn btn-sm btn-outline-primary" @click="close(); opened = book">詳情</button>
-        <button v-if="isMine" type="button" class="btn btn-sm btn-primary" @click="close(); openForm(book)">維護</button>
-        <LoanButtons v-else :book="book" size="sm" :only="['request']" @changed="close" />
-      </template>
-    </BookShelf>
+    <BookShelf :books="books" :per-row="perRow" :empty-text="emptyText" @select="opened = $event" />
     <div v-if="pages > 1" class="d-flex align-items-center justify-content-center gap-3">
       <button type="button" class="btn btn-sm btn-outline-primary" aria-label="上一架" :disabled="page === 1" @click="go(page - 1)"><i class="bi bi-chevron-left"></i></button>
       <span class="text-secondary rf-serif">第 {{ page }} / {{ pages }} 架</span>
@@ -53,7 +47,6 @@ import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookForm from '../components/BookForm.vue'
 import BookShelf from '../components/BookShelf.vue'
-import LoanButtons from '../components/LoanButtons.vue'
 import OpenBook from '../components/OpenBook.vue'
 import { booksToCsv } from '../utils/csv'
 

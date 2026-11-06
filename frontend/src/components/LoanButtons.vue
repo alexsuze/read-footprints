@@ -17,13 +17,12 @@ import { toast } from './AppToast.vue'
 import { useAuthStore } from '../stores/auth'
 import { loanActions } from '../utils/loan'
 
-// 借書 / 取消申請 / 歸還 / 核定借出 / 拒絕 / 收回（攤開書籍、書架選單、總覽租借中、租借管理共用）
+// 借書 / 取消申請 / 歸還 / 核定借出 / 拒絕 / 收回（攤開書籍、總覽租借中、租借管理共用）
 // book 模式：傳入書（含 loan），完成後直接更新 book.loan；loan 模式：傳入借閱紀錄（總覽、租借管理）
 const props = defineProps({
   book: { type: Object, default: null },
   loan: { type: Object, default: null },
-  size: { type: String, default: '' },
-  only: { type: Array, default: null } // 只顯示這些動作（書架選單只放借書）
+  size: { type: String, default: '' }
 })
 const emit = defineEmits(['changed'])
 
@@ -46,8 +45,7 @@ const current = computed(() => (props.book
 const actions = computed(() => {
   const isOwner = auth.isAdmin
   const canBorrow = !!props.book && !isOwner && props.book.user_id !== auth.user?.id
-  const list = loanActions(current.value, { isOwner, canBorrow })
-  return props.only ? list.filter(a => props.only.includes(a)) : list
+  return loanActions(current.value, { isOwner, canBorrow })
 })
 
 async function run (action) {
