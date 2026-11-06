@@ -35,11 +35,7 @@
             </tr>
           </tbody>
         </table>
-        <div v-if="pages > 1" class="d-flex align-items-center justify-content-center gap-2">
-          <button type="button" class="btn btn-sm btn-outline-primary" :disabled="page === 1" aria-label="上一頁" @click="page--"><i class="bi bi-chevron-left"></i></button>
-          <span class="small text-secondary">{{ page }} / {{ pages }}</span>
-          <button type="button" class="btn btn-sm btn-outline-primary" :disabled="page === pages" aria-label="下一頁" @click="page++"><i class="bi bi-chevron-right"></i></button>
-        </div>
+        <PageNav v-if="pages > 1" :page="page" :pages="pages" @go="page = $event" />
       </div></section>
     </div>
 
@@ -71,6 +67,7 @@ import { useRoute } from 'vue-router'
 import http from '../../api/http'
 import { toast } from '../AppToast.vue'
 import EChart from '../EChart.vue'
+import PageNav from '../PageNav.vue'
 import { barOption } from '../../utils/chart'
 import { today } from '../../utils/activity'
 import { minutesByMonth, minutesByYear } from '../../utils/stats'

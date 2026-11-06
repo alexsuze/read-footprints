@@ -16,7 +16,7 @@
       <i class="bi" :class="order === 'desc' ? 'bi-sort-down' : 'bi-sort-up'"></i>
     </button>
     <div class="btn-group" role="group" aria-label="已讀篩選">
-      <button v-for="r in READ_FILTERS" :key="r.value" type="button" class="btn btn-outline-primary" :class="{ active: read === r.value }" @click="setRead(r.value)">{{ r.label }}</button>
+      <button v-for="r in readFilters" :key="r.value" type="button" class="btn btn-outline-primary" :class="{ active: read === r.value }" @click="setRead(r.value)">{{ r.label }}</button>
     </div>
     <div v-if="!auth.isAdmin" class="btn-group" role="group" aria-label="書架">
       <button type="button" class="btn btn-outline-primary" :class="{ active: shelf === 'mine' }" @click="setShelf('mine')">我的書架</button>
@@ -30,11 +30,7 @@
 
   <section class="card shelf-card">
     <BookShelf :books="books" :per-row="perRow" :empty-text="emptyText" @select="opened = $event" />
-    <div v-if="pages > 1" class="d-flex align-items-center justify-content-center gap-3">
-      <button type="button" class="btn btn-sm btn-outline-primary" aria-label="上一架" :disabled="page === 1" @click="go(page - 1)"><i class="bi bi-chevron-left"></i></button>
-      <span class="text-secondary rf-serif">第 {{ page }} / {{ pages }} 架</span>
-      <button type="button" class="btn btn-sm btn-outline-primary" aria-label="下一架" :disabled="page === pages" @click="go(page + 1)"><i class="bi bi-chevron-right"></i></button>
-    </div>
+    <PageNav v-if="pages > 1" :page="page" :pages="pages" unit="架" @go="go" />
   </section>
 
   <OpenBook v-if="opened" :book="opened" @close="opened = null" @edit="fromOpen" />
@@ -48,9 +44,10 @@ import { useAuthStore } from '../stores/auth'
 import BookForm from '../components/BookForm.vue'
 import BookShelf from '../components/BookShelf.vue'
 import OpenBook from '../components/OpenBook.vue'
+import PageNav from '../components/PageNav.vue'
 import { booksToCsv } from '../utils/csv'
 
-const READ_FILTERS = [{ value: 'all', label: '全部' }, { value: 'unread', label: '未讀' }, { value: 'read', label: '已讀' }]
+const READ_FILTERS = [{ value: 'all', label: '全部' }, { value: 'unread', label: '未讀' }, { value: 'reading', label: '閱讀中' }, { value: 'read', label: '已讀' }]
 const SORTS = [
   { value: 'buy_date', label: '購買日期' },
   { value: 'title', label: '書名' },
@@ -84,6 +81,8 @@ const editing = ref(null)
 const exporting = ref(false)
 
 const isMine = computed(() => shelf.value === 'mine')
+// 閱讀中只有書主看得到，看管理員書架時不提供
+const readFilters = computed(() => READ_FILTERS.filter(r => isMine.value || r.value !== 'reading'))
 const emptyText = computed(() => {
   if (keyword.value.trim() || read.value !== 'all') return '找不到符合條件的書'
   return isMine.value ? '書架還空著，按「新增書籍」放上第一本書' : '管理員書架還沒有書'
@@ -118,6 +117,7 @@ function setRead (value) {
 function setShelf (value) {
   shelf.value = value
   if (value === 'admin' && sort.value === 'price') sort.value = 'buy_date'
+  if (value === 'admin' && read.value === 'reading') read.value = 'all'
   search()
 }
 

@@ -59,6 +59,13 @@ public class BookController {
         return service.update(me, id, form);
     }
 
+    /** 攤開頁的開書 / 讀完了 / 放棄 */
+    @PutMapping("/{id}/state")
+    public Book setState(@RequestAttribute(AuthFilter.USER) User me, @PathVariable String id,
+                         @RequestBody BookService.StateForm form) {
+        return service.setState(me, id, form);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@RequestAttribute(AuthFilter.USER) User me, @PathVariable String id) {

@@ -39,6 +39,8 @@ h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 .btn-outline-primary { --bs-btn-disabled-color: var(--rf-wood); --bs-btn-disabled-border-color: var(--rf-wood); --bs-btn-color: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood); --bs-btn-hover-border-color: var(--rf-wood); --bs-btn-hover-color: var(--rf-paper); --bs-btn-active-bg: var(--rf-wood); --bs-btn-active-border-color: var(--rf-wood); }
 .btn-outline-success { --bs-btn-color: var(--rf-matcha); --bs-btn-border-color: var(--rf-matcha); --bs-btn-hover-bg: var(--rf-matcha); --bs-btn-hover-border-color: var(--rf-matcha); }
 .btn-outline-danger { --bs-btn-color: var(--rf-vermilion); --bs-btn-border-color: var(--rf-vermilion); --bs-btn-hover-bg: var(--rf-vermilion); --bs-btn-hover-border-color: var(--rf-vermilion); }
+.form-check-input:checked { background-color: var(--rf-wood); border-color: var(--rf-wood); }
+.form-check-input:focus { border-color: var(--rf-wood); box-shadow: 0 0 0 .2rem rgba(139, 107, 74, .15); }
 .btn-check:checked + .btn-outline-primary { background: var(--rf-wood); color: var(--rf-paper); }
 
 .card { --bs-card-bg: var(--rf-card); --bs-card-border-color: var(--rf-line); --bs-card-border-radius: 6px; }
@@ -58,6 +60,10 @@ h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 .pill-pending { background: #F1E3C8; color: var(--rf-wood); }
 .pill-active { background: #E1E7D5; color: #5F6F43; }
 .pill-disabled { background: #E7D3CF; color: var(--rf-vermilion); }
+/* 閱讀狀態 */
+.pill-state-read { background: #E1E7D5; color: #5F6F43; }
+.pill-state-reading { background: #F1E3C8; color: var(--rf-wood-2); }
+.pill-state-unread { background: var(--rf-paper-2); color: var(--rf-ink-2); }
 /* 借閱狀態 */
 .pill-loan, .pill-lent { background: #EED9D3; color: #8E3B2F; }
 .pill-requested { background: #F1E3C8; color: var(--rf-wood); }

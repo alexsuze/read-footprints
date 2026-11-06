@@ -17,7 +17,10 @@
               <dd>{{ row[1] || '—' }}</dd>
             </template>
             <dt>狀態</dt>
-            <dd><span class="pill" :class="book.read ? 'pill-active' : 'pill-pending'">{{ book.read ? `完讀 ${book.read_date || ''}` : '未讀' }}</span></dd>
+            <dd>
+              <span class="pill" :class="`pill-state-${state}`">{{ stateText }}</span>
+              <span v-if="isOwner && book.reading_since" class="small text-secondary ms-2">{{ book.reading_since }} 開書</span>
+            </dd>
             <dt>購買連結</dt>
             <dd class="text-truncate">
               <a v-if="safeUrl" :href="safeUrl" target="_blank" rel="noopener noreferrer">{{ safeUrl }}</a>
@@ -33,8 +36,21 @@
             </template>
           </dl>
           <p v-if="isOwner" class="text-secondary small mb-0">金額與購買日期只有書主看得到</p>
+          <form v-if="finishing" class="finish" @submit.prevent="setState('read')">
+            <label class="small text-secondary" for="ob-read-date">完讀日期</label>
+            <input id="ob-read-date" v-model="finishDate" type="date" class="form-control form-control-sm" :max="today" required>
+            <button type="submit" class="btn btn-sm btn-primary text-nowrap" :disabled="busy">完讀</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" @click="finishing = false">取消</button>
+          </form>
           <div class="actions">
             <button type="button" class="btn btn-outline-primary" @click="$emit('close')">關閉</button>
+            <template v-if="isOwner && !finishing">
+              <button v-if="state === 'unread'" type="button" class="btn btn-outline-primary" :disabled="busy" @click="setState('reading')">開書</button>
+              <template v-if="state === 'reading'">
+                <button type="button" class="btn btn-outline-danger" :disabled="busy" @click="giveUp">放棄</button>
+                <button type="button" class="btn btn-outline-primary" @click="startFinish">讀完了</button>
+              </template>
+            </template>
             <LoanButtons :book="book" @changed="$emit('changed', $event)" />
             <button v-if="isOwner && !readonly" type="button" class="btn btn-primary" @click="$emit('edit', book)">維護</button>
           </div>
@@ -49,6 +65,8 @@
 import { computed, onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
+import { toast } from './AppToast.vue'
+import { bookState, readingDay } from '../utils/book'
 import { LOAN_LABELS } from '../utils/loan'
 import { spineColor, spineInk } from '../utils/spine'
 import LoanButtons from './LoanButtons.vue'
@@ -64,6 +82,40 @@ const auth = useAuthStore()
 const dialog = ref(null)
 const detail = ref(null)
 const isOwner = computed(() => props.book.user_id === auth.user?.id)
+const today = new Date().toLocaleDateString('sv')
+const state = computed(() => bookState(props.book))
+const stateText = computed(() => {
+  if (state.value === 'read') return `完讀 ${props.book.read_date || ''}`
+  if (state.value === 'reading') return `閱讀中 · 第 ${readingDay(props.book.reading_since, today) ?? 1} 天`
+  return '未讀'
+})
+const busy = ref(false)
+const finishing = ref(false)
+const finishDate = ref(today)
+
+// 開書 / 讀完了 / 放棄（規劃書 4.3）：直接改狀態，不用進維護表單
+async function setState (next) {
+  busy.value = true
+  try {
+    const body = next === 'read' ? { state: next, date: finishDate.value } : { state: next }
+    const { data } = await http.put(`/books/${props.book.id}/state`, body)
+    for (const k of ['read', 'read_date', 'reading', 'reading_since']) props.book[k] = data[k]
+    finishing.value = false
+    toast(next === 'reading' ? '開書了，祝閱讀愉快' : next === 'read' ? '恭喜讀完！' : '已放棄，回到未讀')
+    emit('changed')
+  } finally {
+    busy.value = false
+  }
+}
+
+function giveUp () {
+  if (confirm(`放棄《${props.book.title}》？會回到未讀，開書日期也會清掉。`)) setState('unread')
+}
+
+function startFinish () {
+  finishDate.value = today
+  finishing.value = true
+}
 const safeUrl = computed(() => (/^https?:\/\//i.test(props.book.buy_url || '') ? props.book.buy_url : ''))
 const rows = computed(() => {
   const b = props.book
@@ -149,6 +201,9 @@ onMounted(async () => {
 .info dt { color: var(--rf-ink-2); font-weight: 400; }
 .info dd { margin: 0; overflow-wrap: anywhere; }
 .info .own { color: var(--rf-wood); }
+.finish { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-bottom: 10px; }
+.finish .form-control { width: auto; }
+.finish + .actions { margin-top: 0; }
 .actions { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .fold { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(0, 0, 0, .12); pointer-events: none; }
 

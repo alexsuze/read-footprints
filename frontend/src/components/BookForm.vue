@@ -45,15 +45,19 @@
                 <label class="form-label" for="bf-words">字數</label>
                 <input id="bf-words" v-model.number="form.word_count" type="number" min="0" class="form-control">
               </div>
-              <div class="col-md-4 d-flex align-items-end">
-                <div class="form-check mb-2">
-                  <input id="bf-read" v-model="form.read" type="checkbox" class="form-check-input">
-                  <label class="form-check-label" for="bf-read">已讀</label>
+              <div class="col-md-4">
+                <span id="bf-state-label" class="form-label d-block">閱讀狀態</span>
+                <div class="btn-group w-100" role="group" aria-labelledby="bf-state-label">
+                  <button v-for="(label, key) in STATE_LABELS" :key="key" type="button" class="btn btn-outline-primary" :class="{ active: state === key }" :aria-pressed="state === key" @click="state = key">{{ label }}</button>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div v-if="state !== 'unread'" class="col-md-4">
+                <label class="form-label" for="bf-since">開書日期</label>
+                <input id="bf-since" v-model="form.reading_since" type="date" class="form-control" :max="today">
+              </div>
+              <div v-if="state === 'read'" class="col-md-4">
                 <label class="form-label" for="bf-read-date">完讀日期</label>
-                <input id="bf-read-date" v-model="form.read_date" type="date" class="form-control" :disabled="!form.read">
+                <input id="bf-read-date" v-model="form.read_date" type="date" class="form-control">
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="bf-price">購買金額</label>
@@ -89,9 +93,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import http from '../api/http'
 import { toast } from './AppToast.vue'
+import { bookState, STATE_LABELS } from '../utils/book'
 import { compressImage } from '../utils/image'
 
 // 新增 / 維護書籍（規劃書 4.3）。book 為 null 時是新增
@@ -111,11 +116,18 @@ const form = reactive({
   publish_date: b?.publish_date ?? '',
   category_id: b?.category_id ?? '',
   word_count: b?.word_count ?? '',
-  read: b?.read ?? false,
   read_date: b?.read_date ?? '',
+  reading_since: b?.reading_since ?? '',
   price: b?.price ?? '',
   buy_date: b?.buy_date ?? '',
   buy_url: b?.buy_url ?? ''
+})
+// 未讀 → 閱讀中（開書）→ 已讀；切回未讀 = 放棄，清掉開書日期
+const today = new Date().toLocaleDateString('sv')
+const state = ref(b ? bookState(b) : 'unread')
+watch(state, s => {
+  if (s === 'reading' && !form.reading_since) form.reading_since = today
+  if (s === 'read' && !form.read_date) form.read_date = today
 })
 const cover = ref('')
 let coverChanged = false
@@ -147,7 +159,10 @@ async function save () {
     translators: list(form.translators),
     word_count: orNull(form.word_count),
     price: orNull(form.price),
-    read_date: form.read ? form.read_date || new Date().toLocaleDateString('sv') : '',
+    read: state.value === 'read',
+    reading: state.value === 'reading',
+    read_date: state.value === 'read' ? form.read_date || today : '',
+    reading_since: state.value === 'unread' ? null : form.reading_since || null,
     cover: coverChanged ? cover.value : null // null = 不動書封
   }
   saving.value = true

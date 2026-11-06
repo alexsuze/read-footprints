@@ -20,9 +20,9 @@
           >
             <span class="spine-title">{{ book.title }}</span>
           </button>
-          <span v-if="book.loan?.status === 'lent'" class="spine-tag lent">借出</span>
-          <span v-if="book.read" class="spine-tag" :class="{ second: book.loan?.status === 'lent' }">完讀</span>
+          <span v-for="(tag, t) in tags(book)" :key="tag.text" class="spine-tag" :class="tag.cls" :style="{ top: `${t * 19}px` }">{{ tag.text }}</span>
         </div>
+        <span v-if="caption" class="spine-caption">{{ caption(book) }}</span>
       </div>
       <span class="bookend" aria-hidden="true"></span>
     </div>
@@ -37,9 +37,19 @@ import { spineColor, spineHeight, spineInk, spineWidth } from '../utils/spine'
 const props = defineProps({
   books: { type: Array, required: true },
   perRow: { type: Number, default: 10 },
-  emptyText: { type: String, default: '這個書架還沒有書' }
+  emptyText: { type: String, default: '這個書架還沒有書' },
+  caption: { type: Function, default: null } // 書下方的小字（總覽閱讀中顯示「第 N 天」）
 })
 defineEmits(['select'])
+
+// 書脊上方的標籤，由上往下疊：借出、閱讀中（只有書主會拿到 reading）、完讀
+function tags (book) {
+  const list = []
+  if (book.loan?.status === 'lent') list.push({ text: '借出', cls: 'lent' })
+  if (book.reading) list.push({ text: '閱讀中', cls: 'reading' })
+  if (book.read) list.push({ text: '完讀', cls: 'done' })
+  return list
+}
 
 const rows = computed(() => {
   const out = []
@@ -156,8 +166,10 @@ const rows = computed(() => {
   white-space: nowrap;
 }
 
+.spine-tag + .spine-tag { border-radius: 0; }
 .spine-tag.lent { background: #8E3B2F; z-index: 1; }
-.spine-tag.second { top: 19px; border-radius: 0; }
+.spine-tag.reading { background: var(--rf-wood); letter-spacing: 0; }
+.spine-caption { position: absolute; left: 50%; top: calc(100% + 16px); transform: translateX(-50%); font-size: 11px; color: var(--rf-ink-2); white-space: nowrap; }
 
 
 @media (max-width: 767.98px) {

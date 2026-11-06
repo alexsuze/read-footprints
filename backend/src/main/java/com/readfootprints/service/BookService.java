@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -40,7 +42,7 @@ public class BookService {
     private static final Map<String, String> SORTS = Map.of(
             "title", "title", "author", "authors", "publisher", "publisher",
             "publish_date", "publishDate", "buy_date", "buyDate", "read_date", "readDate",
-            "price", "price", "created_at", "createdAt");
+            "price", "price", "created_at", "createdAt", "reading_since", "readingSince");
 
     private final BookRepository books;
     private final BookCoverRepository covers;
@@ -65,9 +67,13 @@ public class BookService {
 
     public record BookForm(String title, String isbn, List<String> authors, List<String> translators,
                            String publisher, String publishDate, String categoryId, Boolean read, String readDate,
-                           String buyUrl, Integer price, String buyDate, Integer wordCount, String cover) {}
+                           String buyUrl, Integer price, String buyDate, Integer wordCount, String cover,
+                           Boolean reading, String readingSince) {}
 
-    /** shelf：mine / admin。read：all / read / unread。page 從 1 開始。 */
+    /** 攤開頁快速切換：unread（未讀 / 放棄）、reading（開書）、read（讀完了，date = 完讀日期） */
+    public record StateForm(String state, String date) {}
+
+    /** shelf：mine / admin。read：all / read / unread / reading。page 從 1 開始。閱讀中只有書主看得到 */
     public BookPage list(User me, String shelf, String keyword, String read, String sort, String order,
                          int page, int size) {
         int pageNo = Math.max(page, 1);
@@ -87,12 +93,14 @@ public class BookService {
         }
         Criteria filtered = switch (read) {
             case "read" -> and(base, where("read").is(true));
-            case "unread" -> and(base, where("read").is(false));
+            // 別人看管理員書架時，閱讀中也算未讀
+            case "unread" -> isOwner ? and(base, where("read").is(false), where("reading").ne(true)) : and(base, where("read").is(false));
+            case "reading" -> isOwner ? and(base, where("read").is(false), where("reading").is(true)) : and(base, where("id").is(null));
             default -> base;
         };
 
-        // 金額排序會洩漏別人書的價格高低
-        String field = SORTS.get(!isOwner && "price".equals(sort) ? "created_at" : sort);
+        // 金額、開書日期排序會洩漏別人書的資訊
+        String field = SORTS.get(!isOwner && ("price".equals(sort) || "reading_since".equals(sort)) ? "created_at" : sort);
         if (field == null) field = "buyDate";
         Sort.Direction direction = "asc".equals(order) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
@@ -135,6 +143,35 @@ public class BookService {
         return b;
     }
 
+    public Book setState(User me, String id, StateForm f) {
+        Book b = owned(me, id);
+        String today = LocalDate.now(UserService.ZONE).toString();
+        String state = f == null ? null : f.state();
+        if ("reading".equals(state)) {
+            b.read = false;
+            b.readDate = "";
+            b.reading = true;
+            b.readingSince = today;
+        } else if ("read".equals(state)) {
+            String date = f.date() == null || f.date().isBlank() ? today : f.date();
+            if (!validDate(date)) throw badRequest("完讀日期格式不正確");
+            b.read = true;
+            b.readDate = date;
+            b.reading = false;
+        } else if ("unread".equals(state)) {
+            b.read = false;
+            b.readDate = "";
+            b.reading = false;
+            b.readingSince = null;
+        } else {
+            throw badRequest("狀態不正確");
+        }
+        books.save(b);
+        prepare(b, categoryNames(b.userId), true);
+        attachLoans(me, List.of(b));
+        return b;
+    }
+
     public void delete(User me, String id) {
         Book b = owned(me, id);
         if (loans.existsByActiveBookId(id)) {
@@ -163,6 +200,11 @@ public class BookService {
         b.categoryId = f.categoryId() == null || f.categoryId().isBlank() ? null : f.categoryId();
         b.read = Boolean.TRUE.equals(f.read());
         b.readDate = b.read ? f.readDate() : "";
+        // 未讀 → 閱讀中 → 已讀；已讀時保留開書日期，未讀時清空
+        b.reading = !b.read && Boolean.TRUE.equals(f.reading());
+        boolean started = b.read || b.reading;
+        String since = f.readingSince() == null || f.readingSince().isBlank() ? null : f.readingSince();
+        b.readingSince = !started ? null : since != null ? since : b.reading ? LocalDate.now(UserService.ZONE).toString() : null;
         b.buyUrl = f.buyUrl();
         b.price = f.price();
         b.buyDate = f.buyDate();
@@ -174,6 +216,9 @@ public class BookService {
         if (f.title().length() > 200) throw badRequest("書名太長");
         if (f.price() != null && f.price() < 0) throw badRequest("金額不可為負數");
         if (f.wordCount() != null && f.wordCount() < 0) throw badRequest("字數不可為負數");
+        if (f.readingSince() != null && !f.readingSince().isBlank() && !validDate(f.readingSince())) {
+            throw badRequest("開書日期格式不正確");
+        }
         if (f.cover() != null && !f.cover().isEmpty()) {
             if (!f.cover().startsWith("data:image/")) throw badRequest("書封格式不正確");
             if (f.cover().length() > MAX_COVER) throw badRequest("書封太大");
@@ -204,6 +249,8 @@ public class BookService {
         if (!isOwner) {
             b.price = null;
             b.buyDate = null;
+            b.reading = false;
+            b.readingSince = null;
         }
     }
 
@@ -223,8 +270,17 @@ public class BookService {
         }
     }
 
-    private static Criteria and(Criteria a, Criteria b) {
-        return new Criteria().andOperator(a, b);
+    private static Criteria and(Criteria... parts) {
+        return new Criteria().andOperator(parts);
+    }
+
+    static boolean validDate(String value) {
+        try {
+            LocalDate.parse(value);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 
     private static List<String> clean(List<String> names) {

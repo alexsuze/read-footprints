@@ -34,6 +34,11 @@ public class Book {
     public boolean read;
     @Field("read_date")
     public String readDate;
+    /** 閱讀中（已開書、還沒讀完）。只有書主看得到，別人看到的永遠是 false */
+    public boolean reading;
+    /** 開書日期 yyyy-MM-dd；讀完後保留，放棄或改回未讀時清空 */
+    @Field("reading_since")
+    public String readingSince;
     @Field("buy_url")
     public String buyUrl;
     public Integer price;

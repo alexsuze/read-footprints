@@ -13,11 +13,16 @@
 
   <section v-if="view === 'calendar'" class="card"><div class="card-body"><ActivityCalendar :activities="shown" /></div></section>
 
-  <p v-else-if="loaded && !shown.length" class="text-secondary text-center py-5">{{ activities.length ? '沒有這個種類的活動' : '還沒有活動，按「新增活動」記下第一個閱讀活動' }}</p>
-
   <template v-else>
+    <div class="form-check form-switch mb-3">
+      <input id="show-ended" v-model="showEnded" class="form-check-input" type="checkbox" role="switch">
+      <label class="form-check-label small" for="show-ended">顯示已結束的活動</label>
+    </div>
+
+    <p v-if="loaded && !listed.length" class="text-secondary text-center py-5">{{ emptyText }}</p>
+
     <section
-      v-for="a in shown"
+      v-for="a in pageItems"
       :key="a.id"
       class="card mb-3 activity"
       :class="{ ended: status(a).key === 'ended' }"
@@ -39,24 +44,29 @@
         </MarathonProgress>
       </div>
     </section>
+
+    <PageNav v-if="pages > 1" :page="page" :pages="pages" @go="page = $event" />
   </template>
 
   <ActivityForm v-if="formOpen" :activity="editing" @close="formOpen = false" @saved="onSaved" />
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import http from '../api/http'
 import ActivityCalendar from '../components/ActivityCalendar.vue'
 import ActivityForm from '../components/ActivityForm.vue'
 import AddMinutes from '../components/AddMinutes.vue'
 import MarathonProgress from '../components/MarathonProgress.vue'
+import PageNav from '../components/PageNav.vue'
 import { useToday } from '../composables/useToday'
 import { activityStatus, TYPE_LABELS } from '../utils/activity'
 
 const FILTERS = [{ value: 'all', label: '全部' }, { value: 'marathon', label: '馬拉松' }, { value: 'quiz', label: '問答' }]
 const VIEWS = [{ value: 'list', label: '列表', icon: 'bi-list-ul' }, { value: 'calendar', label: '月曆', icon: 'bi-calendar3' }]
 const VIEW_KEY = 'rf.activityView'
+const ENDED_KEY = 'rf.activityShowEnded'
+const PER_PAGE = 5
 
 const activities = ref([])
 const loaded = ref(false)
@@ -64,10 +74,21 @@ const filter = ref('all')
 const formOpen = ref(false)
 const editing = ref(null)
 const view = ref(readView())
+const showEnded = ref(readFlag(ENDED_KEY))
+const page = ref(1)
 
 const now = useToday()
 const status = a => activityStatus(a, now.value)
 const shown = computed(() => activities.value.filter(a => filter.value === 'all' || a.type === filter.value))
+// 列表檢視：預設不顯示已結束，每頁 5 個
+const listed = computed(() => shown.value.filter(a => showEnded.value || status(a).key !== 'ended'))
+const pages = computed(() => Math.max(1, Math.ceil(listed.value.length / PER_PAGE)))
+const pageItems = computed(() => listed.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
+const emptyText = computed(() => {
+  if (!activities.value.length) return '還沒有活動，按「新增活動」記下第一個閱讀活動'
+  if (!shown.value.length) return '沒有這個種類的活動'
+  return '沒有進行中或未開始的活動，打開「顯示已結束的活動」可以看舊的活動'
+})
 const counts = computed(() => ({
   ongoing: activities.value.filter(a => status(a).key === 'ongoing').length,
   ended: activities.value.filter(a => status(a).key === 'ended').length
@@ -76,6 +97,14 @@ const counts = computed(() => ({
 async function load () {
   activities.value = (await http.get('/activities')).data
   loaded.value = true
+}
+
+watch([filter, showEnded], () => { page.value = 1 })
+watch(showEnded, v => { try { localStorage.setItem(ENDED_KEY, v ? '1' : '0') } catch { /* 無法儲存就算了 */ } })
+watch(pages, p => { if (page.value > p) page.value = p })
+
+function readFlag (key) {
+  try { return localStorage.getItem(key) === '1' } catch { return false }
 }
 
 function openForm (activity) {

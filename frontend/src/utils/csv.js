@@ -1,4 +1,5 @@
 // 書籍匯出 CSV（規劃書 4.3）：UTF-8 加 BOM，Excel 可直接開
+import { bookState, STATE_LABELS } from './book.js'
 
 const COLUMNS = [
   ['書名', b => b.title],
@@ -9,11 +10,11 @@ const COLUMNS = [
   ['出版日期', b => b.publish_date],
   ['分類', b => b.category_name],
   ['字數', b => b.word_count],
-  ['已讀', b => (b.read ? '是' : '否')],
+  ['狀態', b => STATE_LABELS[bookState(b)]],
   ['完讀日期', b => b.read_date],
   ['購買連結', b => b.buy_url]
 ]
-const PRIVATE_COLUMNS = [['金額', b => b.price], ['購買日期', b => b.buy_date]]
+const PRIVATE_COLUMNS = [['金額', b => b.price], ['購買日期', b => b.buy_date], ['開書日期', b => b.reading_since]]
 
 function cell (value) {
   let s = value == null ? '' : String(value)
