@@ -75,8 +75,10 @@
         <button type="button" class="btn-close btn-sm ms-auto" aria-label="關閉計算明細" @click="showDetail = false"></button>
       </div>
       <p class="small text-secondary">
-        每本書分到的分鐘 = 閱讀期間每天登錄的分鐘 ÷ 當天同時在讀的本數。主數字取採計書每分鐘字數的<b>中位數</b>。
-        不採計：沒有字數、開書到完讀超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半、每分鐘不到 50 或超過 1,000 字。
+        ① 先排除：沒有字數、開書到完讀超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半（閱讀中的書也一樣）。
+        ② 只用通過的書分配分鐘：每天登錄的分鐘 ÷ 當天同時在讀的本數。
+        ③ 每分鐘不到 50 或超過 1,000 字的排除，排除後重新分配，直到沒有書再被排除。
+        ④ 主數字取採計書每分鐘字數的<b>中位數</b>。被排除的書不會分走別人的分鐘，它的「分到分鐘」是假設它也在讀時的參考值。
       </p>
       <p v-if="!details.length" class="text-secondary small mb-0">還沒有同時填了開書日期與完讀日期的書。</p>
       <div v-else class="table-responsive">

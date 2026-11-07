@@ -117,6 +117,35 @@ class StatsServiceTest {
     }
 
     @Test
+    void excludedBooksDoNotDiluteMinutes() {
+        // a：10/01～10/04 讀完 72,000 字，每天 60 分；long：08/01～10/04（超過 30 天，先排除）
+        Map<String, Integer> logs = Map.of("2026-10-01", 60, "2026-10-02", 60, "2026-10-03", 60, "2026-10-04", 60);
+        var sp = StatsService.speed(List.of(
+                book("a", null, 72_000, true, "2026-10-01", "2026-10-04"),
+                book("long", null, 150_000, true, "2026-08-01", "2026-10-04"),
+                book("nowords", null, null, true, "2026-10-02", "2026-10-03")), logs, TODAY);
+        // 沒有先排除的話 a 只分到 30 + 20 + 20 + 30 = 100 分（720 字/分）；現在獨得 240 分（300 字/分）
+        assertEquals(1, sp.books());
+        assertEquals(300.0, sp.medianWpm());
+        var a = sp.details().stream().filter(d -> d.id().equals("a")).findFirst().orElseThrow();
+        assertEquals(240.0, a.minutes());
+        assertEquals(1, a.maxConcurrent());
+    }
+
+    @Test
+    void unrealisticBookIsRemovedThenMinutesReallocated() {
+        // a、b 都是 10/01～10/02，每天 60 分。b 字數 300,000：分到 60 分 = 5,000 字/分，排除後 a 獨得 120 分
+        Map<String, Integer> logs = Map.of("2026-10-01", 60, "2026-10-02", 60);
+        var sp = StatsService.speed(List.of(
+                book("a", null, 36_000, true, "2026-10-01", "2026-10-02"),
+                book("b", null, 300_000, true, "2026-10-01", "2026-10-02")), logs, TODAY);
+        assertEquals(1, sp.books());
+        assertEquals(300.0, sp.medianWpm());
+        var b = sp.details().stream().filter(d -> d.id().equals("b")).findFirst().orElseThrow();
+        assertEquals("速度不合理", b.reason());
+    }
+
+    @Test
     void medianOfSpeeds() {
         assertEquals(0.0, StatsService.median(List.of()));
         assertEquals(300.0, StatsService.median(List.of(300.0)));

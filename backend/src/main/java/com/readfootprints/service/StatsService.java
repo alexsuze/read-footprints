@@ -101,22 +101,72 @@ public class StatsService {
     }
 
     /**
-     * 每本書分到的分鐘：閱讀期間每天的分鐘數，除以當天同時在讀的本數（開書日 ~ 完讀日，或閱讀中到今天）。
-     * 主數字用各本速度的中位數，不容易被少數幾本拉偏。
+     * 看書速度（2026-11-07 改成先排除再分配）：
+     * 1. 每本有開書日期的書是一段期間（已讀：開書 ~ 完讀；閱讀中：開書 ~ 今天），頭尾都算
+     * 2. 先排除不靠分鐘就能判斷的：沒有字數、超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半
+     * 3. 只用通過的書算每天同時在讀幾本，當天分鐘平分給這幾本
+     * 4. 算出每分鐘字數，超出 50 ~ 1,000 的排除，排除後重新分配，直到沒有書再被排除
+     * 5. 主數字取通過的已讀書每分鐘字數的中位數
+     * 被排除的書不分走別人的分鐘；明細裡它的「分到分鐘」是假設它也在讀時會分到的量，只供參考
      */
     static Speed speed(List<Book> books, Map<String, Integer> minutesByDate, LocalDate today) {
-        record Span(Book book, LocalDate from, LocalDate to) {}
+        record Span(Book book, LocalDate from, LocalDate to, long days, int logged) {}
         List<Span> spans = new java.util.ArrayList<>();
         for (Book b : books) {
             LocalDate from = parse(b.readingSince);
             if (from == null) continue;
             LocalDate to = b.read ? parse(b.readDate) : b.reading ? today : null;
-            if (to != null && !to.isBefore(from)) spans.add(new Span(b, from, to));
+            if (to == null || to.isBefore(from)) continue;
+            int logged = 0;
+            for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+                if (minutesByDate.getOrDefault(d.toString(), 0) > 0) logged++;
+            }
+            spans.add(new Span(b, from, to, java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1, logged));
         }
-        Map<LocalDate, Integer> open = new HashMap<>(); // 每天同時在讀幾本
+
+        // 第 2 步：先排除
+        Map<Span, String> reasons = new HashMap<>();
         for (Span sp : spans) {
-            for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) open.merge(d, 1, Integer::sum);
+            Book b = sp.book();
+            String reason = null;
+            if (b.wordCount == null || b.wordCount <= 0) reason = "沒有字數";
+            else if (sp.days() > MAX_SPEED_DAYS) reason = "超過 " + MAX_SPEED_DAYS + " 天";
+            else if (sp.logged() == 0) reason = "期間沒有登錄分鐘";
+            else if (sp.logged() < sp.days() * MIN_LOGGED_RATIO) reason = "有填時數的天數不到一半";
+            if (reason != null) reasons.put(sp, reason);
         }
+
+        // 第 3、4 步：分配分鐘，排除速度不合理的再重算
+        Map<LocalDate, Integer> open = new HashMap<>();
+        Map<Span, Double> share = new HashMap<>();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            open.clear();
+            for (Span sp : spans) {
+                if (reasons.containsKey(sp)) continue;
+                for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) open.merge(d, 1, Integer::sum);
+            }
+            for (Span sp : spans) {
+                boolean active = !reasons.containsKey(sp);
+                double sum = 0;
+                for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) {
+                    int n = open.getOrDefault(d, 0) + (active ? 0 : 1); // 被排除的書：假設它也在讀
+                    sum += (double) minutesByDate.getOrDefault(d.toString(), 0) / n;
+                }
+                share.put(sp, Math.round(sum * 10) / 10.0);
+            }
+            for (Span sp : spans) {
+                if (reasons.containsKey(sp) || !sp.book().read) continue;
+                double wpm = sp.book().wordCount / share.get(sp);
+                if (wpm < MIN_WPM || wpm > MAX_WPM) {
+                    reasons.put(sp, "速度不合理");
+                    changed = true;
+                }
+            }
+        }
+
+        // 第 5 步與明細（只列已讀的書）
         List<SpeedBook> details = new java.util.ArrayList<>();
         List<Double> speeds = new java.util.ArrayList<>();
         long words = 0, dayTotal = 0;
@@ -124,32 +174,21 @@ public class StatsService {
         for (Span sp : spans) {
             Book b = sp.book();
             if (!b.read) continue;
-            long days = java.time.temporal.ChronoUnit.DAYS.between(sp.from(), sp.to()) + 1;
-            double share = 0;
-            int logged = 0, maxOpen = 1;
+            double m = share.get(sp);
+            Double wpm = b.wordCount != null && b.wordCount > 0 && m > 0 ? Math.round(b.wordCount / m * 10) / 10.0 : null;
+            int maxOpen = 1;
             for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) {
-                int m = minutesByDate.getOrDefault(d.toString(), 0);
-                if (m > 0) logged++;
-                share += (double) m / open.get(d);
-                maxOpen = Math.max(maxOpen, open.get(d));
+                maxOpen = Math.max(maxOpen, open.getOrDefault(d, 0) + (reasons.containsKey(sp) ? 1 : 0));
             }
-            share = Math.round(share * 10) / 10.0;
-            Double wpm = b.wordCount != null && b.wordCount > 0 && share > 0 ? Math.round(b.wordCount / share * 10) / 10.0 : null;
-            String reason = null;
-            if (b.wordCount == null || b.wordCount <= 0) reason = "沒有字數";
-            else if (days > MAX_SPEED_DAYS) reason = "超過 " + MAX_SPEED_DAYS + " 天";
-            else if (share <= 0) reason = "期間沒有登錄分鐘";
-            else if (logged < days * MIN_LOGGED_RATIO) reason = "有填時數的天數不到一半";
-            else if (wpm < MIN_WPM || wpm > MAX_WPM) reason = "速度不合理";
-            boolean ok = reason == null;
-            if (ok) {
+            String reason = reasons.get(sp);
+            if (reason == null) {
                 speeds.add(wpm);
                 words += b.wordCount;
-                minutes += share;
-                dayTotal += days;
+                minutes += m;
+                dayTotal += sp.days();
             }
-            details.add(new SpeedBook(b.id, b.title, sp.from().toString(), sp.to().toString(), days, logged,
-                    b.wordCount, share, maxOpen, wpm, ok, reason));
+            details.add(new SpeedBook(b.id, b.title, sp.from().toString(), sp.to().toString(), sp.days(), sp.logged(),
+                    b.wordCount, m, maxOpen, wpm, reason == null, reason));
         }
         details.sort(java.util.Comparator.comparing(SpeedBook::to).reversed());
         return new Speed(speeds.size(), median(speeds), words, Math.round(minutes * 10) / 10.0, dayTotal, details);
