@@ -66,7 +66,7 @@ import { computed, onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import { toast } from './AppToast.vue'
-import { bookState, readingDay } from '../utils/book'
+import { bookState, readingDay, wordCountText } from '../utils/book'
 import { LOAN_LABELS } from '../utils/loan'
 import { spineColor, spineInk } from '../utils/spine'
 import LoanButtons from './LoanButtons.vue'
@@ -126,7 +126,7 @@ const rows = computed(() => {
     ['出版日期', b.publish_date],
     ['分類', b.category_name || '未分類'],
     ['ISBN', b.isbn],
-    ['字數', b.word_count ? `${b.word_count.toLocaleString()} 字` : '']
+    ['字數', b.word_count == null ? '' : wordCountText(b.word_count, ' 字')]
   ]
 })
 

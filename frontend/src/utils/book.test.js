@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bookState, clampPage, readingDay } from './book.js'
+import { bookState, clampPage, readingDay, wordCountText } from './book.js'
 
 test('bookState', () => {
   assert.equal(bookState({ read: true, reading: false }), 'read')
@@ -22,4 +22,12 @@ test('clampPage', () => {
   assert.equal(clampPage('2.6', 12), 3)
   assert.equal(clampPage('abc', 12), null)
   assert.equal(clampPage('', 12), null)
+})
+
+test('wordCountText：空白 / 0 版式 / 千分位', () => {
+  assert.equal(wordCountText(null), '—')
+  assert.equal(wordCountText(undefined), '—')
+  assert.equal(wordCountText(0), '版式')
+  assert.equal(wordCountText(123456), '123,456')
+  assert.equal(wordCountText(123456, ' 字'), '123,456 字')
 })

@@ -43,7 +43,8 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="bf-words">字數</label>
-                <input id="bf-words" v-model.number="form.word_count" type="number" min="0" class="form-control">
+                <input id="bf-words" v-model.number="form.word_count" type="number" min="0" class="form-control" aria-describedby="bf-words-help">
+                <div id="bf-words-help" class="form-text">版式電子書（圖片輸出）無法計算字數時填 0</div>
               </div>
               <div class="col-md-4">
                 <span id="bf-state-label" class="form-label d-block">閱讀狀態</span>

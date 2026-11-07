@@ -16,3 +16,10 @@ export function clampPage (value, pages) {
   if (!String(value).trim() || !Number.isFinite(n)) return null
   return Math.min(Math.max(n, 1), Math.max(pages, 1))
 }
+
+// 字數顯示：沒填 → —；0 → 版式（電子書是圖片輸出，無法計算字數）；其他加千分位
+export function wordCountText (n, unit = '') {
+  if (n == null || n === '') return '—'
+  if (n === 0) return '版式'
+  return `${n.toLocaleString()}${unit}`
+}

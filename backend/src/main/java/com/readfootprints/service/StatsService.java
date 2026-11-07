@@ -147,7 +147,8 @@ public class StatsService {
         for (Span sp : spans) {
             Book b = sp.book();
             String reason = null;
-            if (b.wordCount == null || b.wordCount <= 0) reason = "沒有字數";
+            if (b.wordCount == null || b.wordCount < 0) reason = "沒有字數";
+            else if (b.wordCount == 0) reason = "版式，無法計算字數";
             else if (sp.days() > MAX_SPEED_DAYS) reason = "超過 " + MAX_SPEED_DAYS + " 天";
             else if (sp.logged() == 0) reason = "期間沒有登錄分鐘";
             else if (sp.logged() < sp.days() * MIN_LOGGED_RATIO) reason = "有填時數的天數不到一半";

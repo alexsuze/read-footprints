@@ -46,7 +46,7 @@
           <div class="kpi-value small-value rf-serif">{{ fun.backlog.days.toLocaleString() }} 天</div>
           <div class="note">
             未讀 {{ wan(fun.backlog.words) }} · 照每天 {{ Math.round(fun.backlog.avgDaily) }} 分鐘
-            <template v-if="fun.backlog.books_without_words">（另有 {{ fun.backlog.books_without_words }} 本沒填字數不計）</template>
+            <template v-if="fun.backlog.books_without_words">（另有 {{ fun.backlog.books_without_words }} 本沒有字數或是版式，不計）</template>
           </div>
         </template>
         <div v-else-if="fun.backlog && !fun.backlog.books_with_words && !fun.backlog.books_without_words" class="kpi-value small-value rf-serif">全部讀完了！</div>

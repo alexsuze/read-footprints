@@ -11,7 +11,7 @@ export const COLUMNS = [
   { key: 'publisher', label: '出版社', text: b => b.publisher, sort: 'publisher' },
   { key: 'publish_date', label: '出版日期', text: b => b.publish_date, sort: 'publish_date' },
   { key: 'category', label: '分類', text: b => b.category_name || '未分類' },
-  { key: 'word_count', label: '字數', text: b => b.word_count, align: 'end' },
+  { key: 'word_count', label: '字數', text: b => (b.word_count === 0 ? '版式' : b.word_count), align: 'end' },
   { key: 'state', label: '狀態', text: b => STATE_LABELS[bookState(b)] + (b.loan?.status === 'lent' ? '（借出）' : '') },
   { key: 'reading_since', label: '開書日期', text: b => b.reading_since, sort: 'reading_since', private: true },
   { key: 'read_date', label: '完讀日期', text: b => b.read_date, sort: 'read_date' },
