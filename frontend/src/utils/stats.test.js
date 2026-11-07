@@ -81,7 +81,7 @@ test('funStats：一字千金、速度、讀完書架', () => {
   const f = funStats({
     total_minutes: 3000, reading_days: 60,
     word_price: { books: 2, total_price: 700, total_words: 150000, cheapest: { id: 'a', title: 'A', price: 300, words: 100000 }, priciest: { id: 'b', title: 'B', price: 400, words: 50000 } },
-    speed: { books: 2, total_words: 36000, total_minutes: 120, total_days: 4 },
+    speed: { books: 2, median_wpm: 300, total_words: 36000, total_minutes: 120, total_days: 4, details: [] },
     backlog: { books_with_words: 2, words: 150000, books_without_words: 1 }
   })
   assert.ok(Math.abs(f.wordPrice.perThousand - 4.6667) < 1e-3)

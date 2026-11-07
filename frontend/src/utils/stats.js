@@ -146,7 +146,7 @@ export function missingLogDates (logDates, today, days = 7) {
 
 // 閱讀紀錄的趣味數據（後端 /stats/summary 給原始加總，這裡換算成顯示用的數字）
 // - 一字千金：每千字多少錢、1 元買幾字
-// - 看書速度：每分鐘字數（主）、每天字數（參考）
+// - 看書速度：各本每分鐘字數的中位數（主）、每天字數（參考）
 // - 讀完書架：未讀字數 ÷ 每分鐘字數 ÷ 平均每日閱讀分鐘
 export function funStats (s) {
   const wp = s.word_price
@@ -161,7 +161,7 @@ export function funStats (s) {
       }
     : null
   const sp = s.speed
-  const speed = sp?.books ? { books: sp.books, wpm: sp.total_words / sp.total_minutes, wpd: sp.total_words / sp.total_days } : null
+  const speed = sp?.books ? { books: sp.books, wpm: sp.median_wpm, wpd: sp.total_words / sp.total_days } : null
   const avgDaily = s.reading_days ? s.total_minutes / s.reading_days : 0
   const bl = s.backlog
   const backlog = bl

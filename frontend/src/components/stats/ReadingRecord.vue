@@ -33,9 +33,10 @@
         <div class="kpi-label">看書速度</div>
         <template v-if="fun.speed">
           <div class="kpi-value small-value rf-serif">每分鐘 {{ Math.round(fun.speed.wpm).toLocaleString() }} 字</div>
-          <div class="note">約每天 {{ wan(fun.speed.wpd) }} · 依 {{ fun.speed.books }} 本計算</div>
+          <div class="note">約每天 {{ wan(fun.speed.wpd) }} · 依 {{ fun.speed.books }} 本計算（中位數）</div>
         </template>
         <div v-else class="note mt-1">讀完一本開書到完讀 30 天內、有字數的書後就會出現。開書日期 2026-11-06 起才有，以前讀過的書可以在維護表單補填。</div>
+        <button v-if="details.length" type="button" class="btn btn-sm btn-link px-0 mt-1" :aria-expanded="showDetail" @click="showDetail = !showDetail">{{ showDetail ? '收起計算明細' : '查看計算明細' }}</button>
       </div></div>
     </div>
     <div class="col-12 col-md-6 col-xl-3">
@@ -67,10 +68,43 @@
       </div></div>
     </div>
   </div>
+  <section v-if="showDetail" class="card mt-3">
+    <div class="card-body">
+      <div class="d-flex align-items-center mb-2">
+        <h2 class="h6 mb-0">看書速度計算明細</h2>
+        <button type="button" class="btn-close btn-sm ms-auto" aria-label="關閉計算明細" @click="showDetail = false"></button>
+      </div>
+      <p class="small text-secondary">
+        每本書分到的分鐘 = 閱讀期間每天登錄的分鐘 ÷ 當天同時在讀的本數。主數字取採計書每分鐘字數的<b>中位數</b>。
+        不採計：沒有字數、開書到完讀超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半、每分鐘不到 50 或超過 1,000 字。
+      </p>
+      <p v-if="!details.length" class="text-secondary small mb-0">還沒有同時填了開書日期與完讀日期的書。</p>
+      <div v-else class="table-responsive">
+        <table class="table table-sm align-middle mb-0 detail-table">
+          <thead>
+            <tr><th>書名</th><th>開書 ～ 完讀</th><th class="text-end">天數</th><th class="text-end">有填時數</th><th class="text-end">字數</th><th class="text-end">分到分鐘</th><th class="text-end">同時在讀</th><th class="text-end">每分鐘字數</th><th>結果</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in details" :key="d.id" :class="{ excluded: !d.included }">
+              <td><button type="button" class="book-link inline" @click="$emit('open', d.id)">{{ d.title }}</button></td>
+              <td class="text-nowrap">{{ d.from.slice(5) }} ～ {{ d.to.slice(5) }}<span class="text-secondary">（{{ d.to.slice(0, 4) }}）</span></td>
+              <td class="text-end">{{ d.days }}</td>
+              <td class="text-end">{{ d.logged_days }} 天</td>
+              <td class="text-end">{{ d.words ? d.words.toLocaleString() : '—' }}</td>
+              <td class="text-end">{{ d.minutes ? Math.round(d.minutes).toLocaleString() : '—' }}</td>
+              <td class="text-end">{{ d.max_concurrent > 1 ? `最多 ${d.max_concurrent} 本` : '—' }}</td>
+              <td class="text-end">{{ d.wpm != null ? Math.round(d.wpm).toLocaleString() : '—' }}</td>
+              <td class="text-nowrap"><span v-if="d.included" class="pill pill-state-read">採計</span><span v-else class="small text-secondary">{{ d.reason }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { formatMinutes, funStats, wan } from '../../utils/stats'
 
 // 閱讀紀錄 KPI（規劃書 4.5，照 1.0）：完讀比例低於 66.7% 顯示朱色
@@ -78,6 +112,8 @@ const props = defineProps({ summary: { type: Object, required: true } })
 defineEmits(['open']) // 點最划算 / 最貴的書名，攤開那本書
 
 const fun = computed(() => funStats(props.summary))
+const details = computed(() => props.summary.speed?.details || [])
+const showDetail = ref(false)
 // 每千字的錢通常是個位數，留一位小數
 const money = v => `$${v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString()}`
 
@@ -102,6 +138,9 @@ const time = computed(() => [
 .book-link .price { display: block; padding-left: 4px; font-size: 12px; color: var(--rf-ink-2); }
 .book-link:hover { color: var(--rf-wood); }
 .book-link:focus-visible { outline: 2px solid var(--rf-ink); outline-offset: 2px; }
+.book-link.inline { display: inline; width: auto; padding: 0; text-decoration: underline; text-decoration-color: var(--rf-line-2); }
+.detail-table { font-size: 13px; min-width: 760px; }
+.detail-table tr.excluded td { color: var(--rf-ink-2); }
 .tag { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 8px; font-size: 11px; }
 .tag.cheap { background: #E1E7D5; color: #5F6F43; }
 .tag.dear { background: #EED9D3; color: #8E3B2F; }

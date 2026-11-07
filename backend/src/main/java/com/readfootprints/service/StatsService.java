@@ -43,15 +43,26 @@ public class StatsService {
 
     public record BookRef(String id, String title, int price, int words) {}
 
-    /** 看書速度：開書到完讀 30 天內、有字數、期間有登錄分鐘且速度合理的書 */
-    public record Speed(int books, long totalWords, double totalMinutes, long totalDays) {}
+    /**
+     * 看書速度：開書到完讀 30 天內、有字數、閱讀期間至少一半的天數有填時數、速度合理的書。
+     * medianWpm = 各本每分鐘字數的中位數（主數字）；totalWords / totalDays 給「每天字數」參考。
+     * details 列出所有有開書與完讀日期的書，含沒採計的原因，給「計算明細」用。
+     */
+    public record Speed(int books, double medianWpm, long totalWords, double totalMinutes, long totalDays,
+                        List<SpeedBook> details) {}
+
+    public record SpeedBook(String id, String title, String from, String to, long days, int loggedDays,
+                            Integer words, double minutes, int maxConcurrent, Double wpm, boolean included,
+                            String reason) {}
 
     /** 書架上還沒讀完（未讀 + 閱讀中）的書：有字數的本數與字數、沒字數的本數 */
     public record Backlog(int booksWithWords, long words, int booksWithoutWords) {}
 
     static final int MAX_SPEED_DAYS = 30;
     /** 每分鐘字數超出這個範圍多半是時數漏填或資料錯誤，不採計 */
-    static final double MIN_WPM = 50, MAX_WPM = 1500;
+    static final double MIN_WPM = 50, MAX_WPM = 1000;
+    /** 閱讀期間有填時數的天數至少要這個比例，不然分母太少、速度會被高估 */
+    static final double MIN_LOGGED_RATIO = 0.5;
 
     public Summary summary(User me) {
         LocalDate today = LocalDate.now(UserService.ZONE);
@@ -90,8 +101,8 @@ public class StatsService {
     }
 
     /**
-     * 每分鐘字數 = 採計書的總字數 ÷ 這些書閱讀期間分到的總分鐘。
-     * 同一天有多本在讀（開書日 ~ 完讀日，或閱讀中到今天）時，當天分鐘數平分給這幾本。
+     * 每本書分到的分鐘：閱讀期間每天的分鐘數，除以當天同時在讀的本數（開書日 ~ 完讀日，或閱讀中到今天）。
+     * 主數字用各本速度的中位數，不容易被少數幾本拉偏。
      */
     static Speed speed(List<Book> books, Map<String, Integer> minutesByDate, LocalDate today) {
         record Span(Book book, LocalDate from, LocalDate to) {}
@@ -106,26 +117,49 @@ public class StatsService {
         for (Span sp : spans) {
             for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) open.merge(d, 1, Integer::sum);
         }
-        int count = 0;
+        List<SpeedBook> details = new java.util.ArrayList<>();
+        List<Double> speeds = new java.util.ArrayList<>();
         long words = 0, dayTotal = 0;
         double minutes = 0;
         for (Span sp : spans) {
             Book b = sp.book();
+            if (!b.read) continue;
             long days = java.time.temporal.ChronoUnit.DAYS.between(sp.from(), sp.to()) + 1;
-            if (!b.read || b.wordCount == null || b.wordCount <= 0 || days > MAX_SPEED_DAYS) continue;
             double share = 0;
+            int logged = 0, maxOpen = 1;
             for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) {
-                share += (double) minutesByDate.getOrDefault(d.toString(), 0) / open.get(d);
+                int m = minutesByDate.getOrDefault(d.toString(), 0);
+                if (m > 0) logged++;
+                share += (double) m / open.get(d);
+                maxOpen = Math.max(maxOpen, open.get(d));
             }
-            if (share <= 0) continue;
-            double wpm = b.wordCount / share;
-            if (wpm < MIN_WPM || wpm > MAX_WPM) continue;
-            count++;
-            words += b.wordCount;
-            minutes += share;
-            dayTotal += days;
+            share = Math.round(share * 10) / 10.0;
+            Double wpm = b.wordCount != null && b.wordCount > 0 && share > 0 ? Math.round(b.wordCount / share * 10) / 10.0 : null;
+            String reason = null;
+            if (b.wordCount == null || b.wordCount <= 0) reason = "沒有字數";
+            else if (days > MAX_SPEED_DAYS) reason = "超過 " + MAX_SPEED_DAYS + " 天";
+            else if (share <= 0) reason = "期間沒有登錄分鐘";
+            else if (logged < days * MIN_LOGGED_RATIO) reason = "有填時數的天數不到一半";
+            else if (wpm < MIN_WPM || wpm > MAX_WPM) reason = "速度不合理";
+            boolean ok = reason == null;
+            if (ok) {
+                speeds.add(wpm);
+                words += b.wordCount;
+                minutes += share;
+                dayTotal += days;
+            }
+            details.add(new SpeedBook(b.id, b.title, sp.from().toString(), sp.to().toString(), days, logged,
+                    b.wordCount, share, maxOpen, wpm, ok, reason));
         }
-        return new Speed(count, words, Math.round(minutes * 10) / 10.0, dayTotal);
+        details.sort(java.util.Comparator.comparing(SpeedBook::to).reversed());
+        return new Speed(speeds.size(), median(speeds), words, Math.round(minutes * 10) / 10.0, dayTotal, details);
+    }
+
+    static double median(List<Double> values) {
+        if (values.isEmpty()) return 0;
+        List<Double> v = values.stream().sorted().toList();
+        int n = v.size();
+        return n % 2 == 1 ? v.get(n / 2) : (v.get(n / 2 - 1) + v.get(n / 2)) / 2;
     }
 
     static Backlog backlog(List<Book> books) {

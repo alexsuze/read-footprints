@@ -83,23 +83,45 @@ class StatsServiceTest {
         Map<String, Integer> logs = Map.of("2026-11-01", 60, "2026-11-02", 40, "2026-11-03", 20);
         var sp = StatsService.speed(List.of(
                 book("a", null, 24_000, true, "2026-11-01", "2026-11-02"),
-                book("b", null, 12_000, true, "2026-11-02", "2026-11-03")), logs, TODAY);
-        // a 分到 60 + 20 = 80 分（300 字/分）；b 分到 20 + 20 = 40 分（300 字/分）
+                book("b", null, 18_000, true, "2026-11-02", "2026-11-03")), logs, TODAY);
+        // a 分到 60 + 20 = 80 分（300 字/分）；b 分到 20 + 20 = 40 分（450 字/分）
         assertEquals(2, sp.books());
-        assertEquals(36_000, sp.totalWords());
+        assertEquals(375.0, sp.medianWpm());
+        assertEquals(42_000, sp.totalWords());
         assertEquals(120.0, sp.totalMinutes());
         assertEquals(4, sp.totalDays());
+        var a = sp.details().stream().filter(d -> d.id().equals("a")).findFirst().orElseThrow();
+        assertEquals(80.0, a.minutes());
+        assertEquals(2, a.maxConcurrent());
+        assertEquals(2, a.loggedDays());
     }
 
     @Test
     void speedSkipsLongMissingOrUnrealisticBooks() {
-        Map<String, Integer> logs = Map.of("2026-10-01", 30, "2026-11-01", 1);
+        Map<String, Integer> logs = Map.of("2026-10-01", 30, "2026-11-01", 1, "2026-10-10", 30);
         var sp = StatsService.speed(List.of(
-                book("long", null, 90_000, true, "2026-09-01", "2026-10-15"),   // 超過 30 天
-                book("nowords", null, null, true, "2026-10-01", "2026-10-01"),   // 沒字數
-                book("fast", null, 90_000, true, "2026-11-01", "2026-11-01"),    // 1 分鐘讀 9 萬字，不合理
-                book("old", null, 50_000, true, null, "2026-01-01")), logs, TODAY); // 沒開書日期
+                book("long", null, 90_000, true, "2026-09-01", "2026-10-15"),    // 超過 30 天
+                book("nowords", null, null, true, "2026-10-01", "2026-10-01"),    // 沒字數
+                book("fast", null, 90_000, true, "2026-11-01", "2026-11-01"),     // 1 分鐘讀 9 萬字
+                book("gaps", null, 9_000, true, "2026-10-10", "2026-10-13"),      // 4 天只有 1 天有時數
+                book("old", null, 50_000, true, null, "2026-01-01")), logs, TODAY); // 沒開書日期，不列
         assertEquals(0, sp.books());
+        assertEquals(0.0, sp.medianWpm());
+        Map<String, String> reasons = new java.util.HashMap<>();
+        sp.details().forEach(d -> reasons.put(d.id(), d.reason()));
+        assertEquals("超過 30 天", reasons.get("long"));
+        assertEquals("沒有字數", reasons.get("nowords"));
+        assertEquals("速度不合理", reasons.get("fast"));
+        assertEquals("有填時數的天數不到一半", reasons.get("gaps"));
+        assertEquals(4, reasons.size());
+    }
+
+    @Test
+    void medianOfSpeeds() {
+        assertEquals(0.0, StatsService.median(List.of()));
+        assertEquals(300.0, StatsService.median(List.of(300.0)));
+        assertEquals(400.0, StatsService.median(List.of(900.0, 300.0, 400.0)));
+        assertEquals(350.0, StatsService.median(List.of(300.0, 400.0, 900.0, 200.0)));
     }
 
     @Test
