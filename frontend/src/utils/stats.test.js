@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { completedByPeriod, missingLogDates, shiftDate, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
+import { logMonths, minutesByDay, monthSummary, completedByPeriod, missingLogDates, shiftDate, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
 
 const books = [
   { category_name: '小說', publisher: '皇冠', authors: ['東野圭吾'], translators: ['王蘊潔'], price: 300, buy_date: '2024-03-01', read: true, read_date: '2024-05-02' },
@@ -62,4 +62,17 @@ test('前 7 天未填的日期，跨月、舊到新、不含今天', () => {
     ['2026-02-22', '2026-02-23', '2026-02-25'])
   assert.deepEqual(missingLogDates([], '2026-11-06').length, 7)
   assert.deepEqual(missingLogDates(['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04'], '2026-11-06'), ['2026-11-05'])
+})
+
+test('每日時數：整個月、今天之後留空、小結與月份選單', () => {
+  const logs = [{ date: '2026-11-01', minutes: 30 }, { date: '2026-11-03', minutes: 0 }, { date: '2026-11-05', minutes: 50 }, { date: '2026-02-10', minutes: 20 }]
+  const days = minutesByDay(logs, '2026-11', '2026-11-07')
+  assert.equal(days.length, 30)
+  assert.deepEqual(days.slice(0, 3).map(d => d.value), [30, 0, 0])
+  assert.equal(days[6].value, 0)
+  assert.equal(days[7].value, null)
+  assert.equal(minutesByDay(logs, '2026-02', '2026-11-07').length, 28)
+  assert.deepEqual(monthSummary(days), { total: 80, readDays: 2, average: 40 })
+  assert.deepEqual(monthSummary([]), { total: 0, readDays: 0, average: 0 })
+  assert.deepEqual(logMonths(logs, '2026-12-01'), ['2026-12', '2026-11', '2026-02'])
 })

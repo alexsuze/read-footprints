@@ -6,12 +6,13 @@ const LINE = '#E2DACA'
 export const money = v => `$${Math.round(v).toLocaleString('zh-TW')}`
 
 // 長條圖：labels 為 x 軸，values 為數值；avg 有值時畫成虛線平均線
-export function barOption ({ labels, values, color = CHART_COLORS[0], format = v => v, rotate = 0, avg = null, avgLabel = '' }) {
+// interval：x 軸標籤間隔（0 = 全部顯示，或傳函式決定哪些顯示）
+export function barOption ({ labels, values, color = CHART_COLORS[0], format = v => v, rotate = 0, avg = null, avgLabel = '', interval = 0 }) {
   return {
     color: [color],
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: format },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => (v == null ? '—' : format(v)) },
     grid: { left: 8, right: 16, top: 28, bottom: 8, containLabel: true },
-    xAxis: { type: 'category', data: labels, axisLabel: { color: INK, rotate, interval: 0 }, axisLine: { lineStyle: { color: LINE } }, axisTick: { show: false } },
+    xAxis: { type: 'category', data: labels, axisLabel: { color: INK, rotate, interval }, axisLine: { lineStyle: { color: LINE } }, axisTick: { show: false } },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: INK }, splitLine: { lineStyle: { color: LINE } } },
     series: [{
       type: 'bar',
@@ -23,8 +24,9 @@ export function barOption ({ labels, values, color = CHART_COLORS[0], format = v
         : {
             silent: true,
             symbol: 'none',
+            z: 10, // 畫在長條上面，文字才不會被擋住
             lineStyle: { color: '#B5493A', type: 'dashed' },
-            label: { formatter: `${avgLabel} ${format(avg)}`, position: 'insideEndTop', color: '#B5493A' },
+            label: { formatter: `${avgLabel} ${format(avg)}`, position: 'insideEndTop', color: '#B5493A', backgroundColor: 'rgba(251, 248, 241, .9)', padding: [1, 4], borderRadius: 3 },
             data: [{ yAxis: avg }]
           }
     }]

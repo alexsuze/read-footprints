@@ -86,6 +86,31 @@ export function minutesByMonth (logs, year) {
   return months
 }
 
+// 某個月（yyyy-MM）每天的分鐘數：整個月都列，沒紀錄是 0，今天之後是 null（圖上留空）
+export function minutesByDay (logs, month, today) {
+  const [y, m] = month.split('-').map(Number)
+  const days = new Date(y, m, 0).getDate()
+  const byDate = new Map(logs.filter(l => l.date.startsWith(`${month}-`)).map(l => [l.date, l.minutes]))
+  return Array.from({ length: days }, (_, i) => {
+    const date = `${month}-${String(i + 1).padStart(2, '0')}`
+    return { period: date, value: date > today ? null : byDate.get(date) || 0 }
+  })
+}
+
+// 一個月的小結：合計分鐘、有讀的天數（> 0 分鐘）、平均（合計 ÷ 有讀的天數，同閱讀紀錄 KPI）
+export function monthSummary (days) {
+  const total = days.reduce((s, d) => s + (d.value || 0), 0)
+  const readDays = days.filter(d => d.value > 0).length
+  return { total, readDays, average: readDays ? total / readDays : 0 }
+}
+
+// 月份選單：有紀錄的月份加上本月，新到舊
+export function logMonths (logs, today) {
+  const set = new Set(logs.map(l => l.date.slice(0, 7)))
+  set.add(today.slice(0, 7))
+  return [...set].sort((a, b) => b.localeCompare(a))
+}
+
 // 連續閱讀里程碑（1.0 首頁）：無 0、鐵 7、銅 30、銀 180、金 365、白金 750、鑽石 1500 天
 export const MILESTONES = [
   { name: '無', days: 0, color: '#C9BFA9', icon: 'bi-book' },

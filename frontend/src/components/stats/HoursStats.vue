@@ -42,19 +42,23 @@
     <div class="col-lg-7">
       <section class="card h-100"><div class="card-body">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-          <h2 class="h6 mb-0">{{ mode === 'month' ? `${year} 年每月` : '每年' }}時數</h2>
-          <span class="text-secondary small">合計 {{ hours(periodTotal) }}</span>
+          <h2 class="h6 mb-0">{{ title }}</h2>
+          <span class="text-secondary small">{{ summaryText }}</span>
           <div class="ms-auto d-flex gap-2">
+            <select v-if="mode === 'day'" v-model="month" class="form-select form-select-sm" aria-label="月份">
+              <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
+            </select>
             <select v-if="mode === 'month'" v-model.number="year" class="form-select form-select-sm" aria-label="年份">
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
             <div class="btn-group btn-group-sm" role="group" aria-label="期間">
+              <button type="button" class="btn btn-outline-primary" :class="{ active: mode === 'day' }" @click="mode = 'day'">日</button>
               <button type="button" class="btn btn-outline-primary" :class="{ active: mode === 'month' }" @click="mode = 'month'">月</button>
               <button type="button" class="btn btn-outline-primary" :class="{ active: mode === 'year' }" @click="mode = 'year'">年</button>
             </div>
           </div>
         </div>
-        <p v-if="!periodTotal" class="text-secondary text-center py-5 mb-0">{{ mode === 'month' ? `${year} 年沒有閱讀紀錄` : '還沒有閱讀紀錄' }}</p>
+        <p v-if="!periodTotal" class="text-secondary text-center py-5 mb-0">{{ emptyText }}</p>
         <EChart v-else :option="option" :height="340" :min-width="mode === 'month' ? 420 : 0" />
       </div></section>
     </div>
@@ -70,12 +74,13 @@ import EChart from '../EChart.vue'
 import PageNav from '../PageNav.vue'
 import { barOption } from '../../utils/chart'
 import { today } from '../../utils/activity'
-import { minutesByMonth, minutesByYear } from '../../utils/stats'
+import { logMonths, minutesByDay, minutesByMonth, minutesByYear, monthSummary } from '../../utils/stats'
 
-// 時數統計（規劃書 4.5）：上半維護每日分鐘數，下半月 / 年時數長條圖
+// 時數統計（規劃書 4.5）：左邊維護每日分鐘數，右邊日（分鐘）/ 月 / 年（小時）長條圖
 const emit = defineEmits(['changed'])
 
 const PER_PAGE = 10
+const STREAK_MINUTES = 20 // 連續閱讀門檻（同閱讀狀況）
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 const vFocus = { mounted: el => el.focus() }
 
@@ -90,8 +95,11 @@ const form = ref({ date: linked, minutes: '' })
 const editing = ref(null)
 const editMinutes = ref('')
 const page = ref(1)
-const mode = ref('month')
+// 預設看本月每天；日用分鐘、月 / 年用小時
+const mode = ref('day')
 const year = ref(Number(now.slice(0, 4)))
+const month = ref(now.slice(0, 7))
+const COMPACT = window.matchMedia('(max-width: 575.98px)').matches
 
 const existing = computed(() => logs.value.find(l => l.date === form.value.date))
 const pages = computed(() => Math.max(1, Math.ceil(logs.value.length / PER_PAGE)))
@@ -101,13 +109,39 @@ const years = computed(() => {
   set.add(Number(now.slice(0, 4)))
   return [...set].sort((a, b) => b - a)
 })
-const periods = computed(() => mode.value === 'month' ? minutesByMonth(logs.value, year.value) : minutesByYear(logs.value))
-const periodTotal = computed(() => periods.value.reduce((s, p) => s + p.value, 0))
-const option = computed(() => barOption({
-  labels: periods.value.map(p => mode.value === 'month' ? `${Number(p.period.slice(5))} 月` : p.period),
-  values: periods.value.map(p => Math.round(p.value / 6) / 10),
-  format: v => `${v} 小時`
-}))
+const months = computed(() => logMonths(logs.value, now))
+const periods = computed(() => {
+  if (mode.value === 'day') return minutesByDay(logs.value, month.value, now)
+  return mode.value === 'month' ? minutesByMonth(logs.value, year.value) : minutesByYear(logs.value)
+})
+const periodTotal = computed(() => periods.value.reduce((s, p) => s + (p.value || 0), 0))
+const monthLabel = m => `${m.slice(0, 4)} 年 ${Number(m.slice(5))} 月`
+const title = computed(() => ({ day: `${monthLabel(month.value)}每日時數`, month: `${year.value} 年每月時數`, year: '每年時數' })[mode.value])
+const summaryText = computed(() => {
+  if (mode.value !== 'day') return `合計 ${hours(periodTotal.value)}`
+  const s = monthSummary(periods.value)
+  return `合計 ${hours(s.total)} · 讀了 ${s.readDays} 天 · 平均 ${Math.round(s.average)} 分鐘`
+})
+const emptyText = computed(() => ({ day: `${monthLabel(month.value)}沒有閱讀紀錄`, month: `${year.value} 年沒有閱讀紀錄`, year: '還沒有閱讀紀錄' })[mode.value])
+const option = computed(() => {
+  if (mode.value === 'day') {
+    const last = periods.value.length - 1
+    return barOption({
+      labels: periods.value.map(p => String(Number(p.period.slice(8)))),
+      values: periods.value.map(p => p.value),
+      format: v => `${v} 分鐘`,
+      avg: STREAK_MINUTES,
+      avgLabel: '連讀門檻',
+      // 手機每 5 天標一次日期
+      interval: COMPACT ? (i => i === 0 || (i + 1) % 5 === 0 || i === last) : 0
+    })
+  }
+  return barOption({
+    labels: periods.value.map(p => mode.value === 'month' ? `${Number(p.period.slice(5))} 月` : p.period),
+    values: periods.value.map(p => Math.round(p.value / 6) / 10),
+    format: v => `${v} 小時`
+  })
+})
 
 watch(pages, p => { if (page.value > p) page.value = p })
 
