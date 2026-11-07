@@ -143,3 +143,36 @@ export function missingLogDates (logDates, today, days = 7) {
   const filled = new Set(logDates)
   return Array.from({ length: days }, (_, i) => shiftDate(today, i - days)).filter(d => !filled.has(d))
 }
+
+// 閱讀紀錄的趣味數據（後端 /stats/summary 給原始加總，這裡換算成顯示用的數字）
+// - 一字千金：每千字多少錢、1 元買幾字
+// - 看書速度：每分鐘字數（主）、每天字數（參考）
+// - 讀完書架：未讀字數 ÷ 每分鐘字數 ÷ 平均每日閱讀分鐘
+export function funStats (s) {
+  const wp = s.word_price
+  const perThousand = b => (b.price * 1000) / b.words
+  const wordPrice = wp?.books
+    ? {
+        books: wp.books,
+        perThousand: (wp.total_price * 1000) / wp.total_words,
+        wordsPerDollar: wp.total_words / wp.total_price,
+        cheapest: wp.cheapest && { ...wp.cheapest, perThousand: perThousand(wp.cheapest) },
+        priciest: wp.priciest && { ...wp.priciest, perThousand: perThousand(wp.priciest) }
+      }
+    : null
+  const sp = s.speed
+  const speed = sp?.books ? { books: sp.books, wpm: sp.total_words / sp.total_minutes, wpd: sp.total_words / sp.total_days } : null
+  const avgDaily = s.reading_days ? s.total_minutes / s.reading_days : 0
+  const bl = s.backlog
+  const backlog = bl
+    ? {
+        ...bl,
+        avgDaily,
+        days: speed && avgDaily && bl.words ? Math.ceil(bl.words / speed.wpm / avgDaily) : null
+      }
+    : null
+  return { wordPrice, speed, backlog }
+}
+
+// 字數，大數字用「萬」：12,345 → 1.2 萬字、980 → 980 字
+export const wan = n => (n >= 10000 ? `${(n / 10000).toFixed(1)} 萬字` : `${Math.round(n).toLocaleString()} 字`)

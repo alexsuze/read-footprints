@@ -8,7 +8,7 @@
 
   <template v-if="tab === 'record' || tab === 'streak'">
     <template v-if="summary">
-      <ReadingRecord v-if="tab === 'record'" :summary="summary" />
+      <ReadingRecord v-if="tab === 'record'" :summary="summary" @open="openBook" />
       <ReadingStreak v-else :days="summary.streak_days" />
     </template>
   </template>
@@ -17,6 +17,8 @@
     <PurchaseStats v-if="tab === 'purchase'" :books="books" />
     <CompletionStats v-else :books="books" />
   </template>
+
+  <OpenBook v-if="opened" :book="opened" readonly @close="opened = null" @changed="onBookChanged" />
 </template>
 
 <script setup>
@@ -27,6 +29,7 @@ import CompletionStats from '../components/stats/CompletionStats.vue'
 import HoursStats from '../components/stats/HoursStats.vue'
 import PurchaseStats from '../components/stats/PurchaseStats.vue'
 import ReadingRecord from '../components/stats/ReadingRecord.vue'
+import OpenBook from '../components/OpenBook.vue'
 import ReadingStreak from '../components/stats/ReadingStreak.vue'
 
 // 閱讀統計五個分頁（規劃書 4.5），只統計自己的資料。分頁記在網址 ?tab=
@@ -43,6 +46,18 @@ const valid = t => TABS.some(x => x.key === t)
 const tab = ref(valid(route.query.tab) ? route.query.tab : 'record')
 const summary = ref(null)
 const books = ref(null)
+const opened = ref(null)
+
+// 趣味數據點書名：抓單本資料後攤開
+async function openBook (id) {
+  opened.value = (await http.get(`/books/${id}`)).data
+}
+
+// 攤開頁改了閱讀狀態，摘要重抓
+function onBookChanged () {
+  summary.value = null
+  ensureData(tab.value)
+}
 
 // 需要時才載入；時數有變動就清掉摘要，下次切回來重抓
 async function ensureData (t) {

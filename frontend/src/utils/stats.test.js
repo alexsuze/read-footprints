@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { logMonths, minutesByDay, monthSummary, completedByPeriod, missingLogDates, shiftDate, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
+import { funStats, wan, logMonths, minutesByDay, monthSummary, completedByPeriod, missingLogDates, shiftDate, formatMinutes, milestone, minutesByMonth, minutesByYear, ranking, spending, spendingByPeriod } from './stats.js'
 
 const books = [
   { category_name: '小說', publisher: '皇冠', authors: ['東野圭吾'], translators: ['王蘊潔'], price: 300, buy_date: '2024-03-01', read: true, read_date: '2024-05-02' },
@@ -75,4 +75,31 @@ test('每日時數：整個月、今天之後留空、小結與月份選單', ()
   assert.deepEqual(monthSummary(days), { total: 80, readDays: 2, average: 40 })
   assert.deepEqual(monthSummary([]), { total: 0, readDays: 0, average: 0 })
   assert.deepEqual(logMonths(logs, '2026-12-01'), ['2026-12', '2026-11', '2026-02'])
+})
+
+test('funStats：一字千金、速度、讀完書架', () => {
+  const f = funStats({
+    total_minutes: 3000, reading_days: 60,
+    word_price: { books: 2, total_price: 700, total_words: 150000, cheapest: { id: 'a', title: 'A', price: 300, words: 100000 }, priciest: { id: 'b', title: 'B', price: 400, words: 50000 } },
+    speed: { books: 2, total_words: 36000, total_minutes: 120, total_days: 4 },
+    backlog: { books_with_words: 2, words: 150000, books_without_words: 1 }
+  })
+  assert.ok(Math.abs(f.wordPrice.perThousand - 4.6667) < 1e-3)
+  assert.ok(Math.abs(f.wordPrice.wordsPerDollar - 214.29) < 0.01)
+  assert.equal(f.wordPrice.cheapest.perThousand, 3)
+  assert.equal(f.wordPrice.priciest.perThousand, 8)
+  assert.equal(f.speed.wpm, 300)
+  assert.equal(f.speed.wpd, 9000)
+  // 150000 字 ÷ 300 字/分 ÷ 50 分/天 = 10 天
+  assert.equal(f.backlog.days, 10)
+  assert.equal(f.backlog.avgDaily, 50)
+})
+
+test('funStats：沒有資料時為 null', () => {
+  const f = funStats({ total_minutes: 0, reading_days: 0, word_price: { books: 0 }, speed: { books: 0 }, backlog: { books_with_words: 0, words: 0, books_without_words: 3 } })
+  assert.equal(f.wordPrice, null)
+  assert.equal(f.speed, null)
+  assert.equal(f.backlog.days, null)
+  assert.equal(wan(12345), '1.2 萬字')
+  assert.equal(wan(980), '980 字')
 })
