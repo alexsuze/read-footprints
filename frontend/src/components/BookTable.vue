@@ -28,6 +28,8 @@
               <span v-if="b.loan?.status === 'lent'" class="pill pill-lent ms-1">借出</span>
             </template>
             <template v-else-if="c.key === 'price'">{{ b.price != null ? `$${b.price.toLocaleString()}` : '—' }}</template>
+            <!-- 字數加千分位；CSV 仍輸出純數字，Excel 才能計算 -->
+            <template v-else-if="c.key === 'word_count'">{{ b.word_count ? b.word_count.toLocaleString() : '—' }}</template>
             <template v-else-if="c.key === 'buy_url'">
               <a v-if="/^https?:\/\//i.test(b.buy_url || '')" :href="b.buy_url" target="_blank" rel="noopener noreferrer" @click.stop>連結</a>
               <template v-else>—</template>
