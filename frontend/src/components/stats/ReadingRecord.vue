@@ -116,7 +116,7 @@
             <tr><th>書名</th><th>開書 ～ 完讀 / 今天</th><th class="text-end">天數</th><th class="text-end">有填時數</th><th class="text-end">字數</th><th class="text-end">分到分鐘</th><th class="text-end">同時在讀</th><th class="text-end">每分鐘字數</th><th>結果</th></tr>
           </thead>
           <tbody>
-            <tr v-for="d in details" :key="d.id" :class="{ excluded: !d.included && !(d.reading && !d.reason) }">
+            <tr v-for="d in details.slice(0, detailLimit)" :key="d.id" :class="{ excluded: !d.included && !(d.reading && !d.reason) }">
               <td><button type="button" class="book-link inline" @click="$emit('open', d.id)">{{ d.title }}</button></td>
               <td class="text-nowrap">{{ d.from.slice(5) }} ～ {{ d.to.slice(5) }}<span class="text-secondary">（{{ d.to.slice(0, 4) }}）</span></td>
               <td class="text-end">{{ d.days }}</td>
@@ -137,12 +137,18 @@
           </tbody>
         </table>
       </div>
+      <div v-if="details.length" class="d-flex align-items-center justify-content-center gap-3 mt-2">
+        <span class="small text-secondary">顯示 {{ Math.min(detailLimit, details.length) }} / {{ details.length }} 筆</span>
+        <button v-if="detailLimit < details.length" type="button" class="btn btn-sm btn-outline-primary" @click="detailLimit += DETAIL_STEP">
+          再顯示 {{ Math.min(DETAIL_STEP, details.length - detailLimit) }} 筆
+        </button>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { formatMinutes, funStats, wan } from '../../utils/stats'
 
 // 閱讀紀錄 KPI（規劃書 4.5，照 1.0）：完讀比例低於 66.7% 顯示朱色
@@ -152,6 +158,10 @@ defineEmits(['open']) // 點最划算 / 最貴的書名，攤開那本書
 const fun = computed(() => funStats(props.summary))
 const details = computed(() => props.summary.speed?.details || [])
 const showDetail = ref(false)
+// 明細先顯示最新 20 筆（依完讀 / 今天新到舊），按鈕每次多 20 筆；收起後重來
+const DETAIL_STEP = 20
+const detailLimit = ref(DETAIL_STEP)
+watch(showDetail, open => { if (!open) detailLimit.value = DETAIL_STEP })
 const cats = computed(() => props.summary.category_speeds || [])
 const rich = computed(() => props.summary.word_rich)
 // 每千字的錢通常是個位數，留一位小數
