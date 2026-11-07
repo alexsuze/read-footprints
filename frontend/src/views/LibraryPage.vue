@@ -2,6 +2,11 @@
   <div class="d-flex align-items-baseline gap-3 mb-3">
     <h1 class="h3 mb-0">圖書館</h1>
     <span class="text-secondary small">共 {{ total }} 本 · 已讀 {{ readCount }}</span>
+    <div class="btn-group btn-group-sm ms-auto align-self-center" role="group" aria-label="顯示模式">
+      <button v-for="v in VIEWS" :key="v.value" type="button" class="btn btn-outline-primary text-nowrap" :class="{ active: view === v.value }" :aria-pressed="view === v.value" :aria-label="v.label" :title="v.label" @click="setView(v.value)">
+        <i class="bi" :class="v.icon"></i><span class="d-none d-sm-inline ms-1">{{ v.label }}</span>
+      </button>
+    </div>
   </div>
 
   <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -28,9 +33,15 @@
     </div>
   </div>
 
-  <section class="card shelf-card">
+  <section v-if="view === 'shelf'" class="card shelf-card">
     <BookShelf :books="books" :per-row="perRow" :empty-text="emptyText" @select="opened = $event" />
     <PageNav v-if="pages > 1" :page="page" :pages="pages" unit="架" @go="go" />
+  </section>
+  <section v-else class="card">
+    <div class="card-body">
+      <BookTable :books="books" :show-private="isMine" :empty-text="emptyText" @select="opened = $event" />
+      <PageNav v-if="pages > 1" class="mt-3" :page="page" :pages="pages" @go="go" />
+    </div>
   </section>
 
   <OpenBook v-if="opened" :book="opened" @close="opened = null" @edit="fromOpen" />
@@ -43,6 +54,7 @@ import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookForm from '../components/BookForm.vue'
 import BookShelf from '../components/BookShelf.vue'
+import BookTable from '../components/BookTable.vue'
 import OpenBook from '../components/OpenBook.vue'
 import PageNav from '../components/PageNav.vue'
 import { booksToCsv } from '../utils/csv'
@@ -61,10 +73,23 @@ const SORTS = [
 const MOBILE = window.matchMedia('(max-width: 767.98px)').matches
 const WIDE = window.matchMedia('(min-width: 1400px)').matches
 const PER_ROW = MOBILE ? 5 : WIDE ? 20 : 10
-const PER_SHELF = PER_ROW * 2 // 上下兩座：手機 10、桌機 20、寬螢幕 40
+const PER_SHELF = PER_ROW * 2 // 上下兩座：手機 10、桌機 20、寬螢幕 40；列表模式每頁一樣多
+const VIEWS = [{ value: 'shelf', label: '書架', icon: 'bi-bookshelf' }, { value: 'list', label: '列表', icon: 'bi-list-ul' }]
+const VIEW_KEY = 'rf.libraryView'
 
 const auth = useAuthStore()
 const perRow = PER_ROW
+// 書架（預設）/ 列表，記在這台瀏覽器
+const view = ref(readView())
+
+function readView () {
+  try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'shelf' } catch { return 'shelf' }
+}
+
+function setView (value) {
+  view.value = value
+  try { localStorage.setItem(VIEW_KEY, value) } catch { /* 無法儲存就算了 */ }
+}
 const books = ref([])
 const total = ref(0)
 const readCount = ref(0)
