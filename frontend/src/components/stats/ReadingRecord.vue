@@ -18,7 +18,7 @@
 
   <h2 class="h6 mt-4 mb-3">趣味數據</h2>
   <div class="row g-3">
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
       <div class="card kpi h-100"><div class="card-body">
         <div class="kpi-label">一字千金</div>
         <template v-if="fun.wordPrice">
@@ -28,7 +28,7 @@
         <div v-else class="note mt-1">需要同時填了字數與金額的書才算得出來。</div>
       </div></div>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
       <div class="card kpi h-100"><div class="card-body">
         <div class="kpi-label">看書速度</div>
         <template v-if="fun.speed">
@@ -39,7 +39,7 @@
         <button v-if="details.length" type="button" class="btn btn-sm btn-link px-0 mt-1" :aria-expanded="showDetail" @click="showDetail = !showDetail">{{ showDetail ? '收起計算明細' : '查看計算明細' }}</button>
       </div></div>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
       <div class="card kpi h-100"><div class="card-body">
         <div class="kpi-label">讀完書架還要</div>
         <template v-if="fun.backlog?.days">
@@ -53,7 +53,7 @@
         <div v-else class="note mt-1">有看書速度、未讀的書有字數，就能估算。</div>
       </div></div>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
       <div class="card kpi h-100"><div class="card-body">
         <div class="kpi-label">最划算 / 最貴的一本</div>
         <template v-if="fun.wordPrice?.cheapest">
@@ -67,7 +67,36 @@
         <div v-else class="note mt-1">需要同時填了字數與金額的書。</div>
       </div></div>
     </div>
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="card kpi h-100"><div class="card-body">
+        <div class="kpi-label">最順 / 最卡的種類</div>
+        <template v-if="cats.length">
+          <div class="cat-line">
+            <span class="tag cheap">最順</span>{{ cats[0].name }}
+            <span class="price">平均每分鐘 {{ Math.round(cats[0].avg_wpm).toLocaleString() }} 字 · {{ cats[0].books }} 本</span>
+          </div>
+          <div v-if="cats.length > 1" class="cat-line">
+            <span class="tag dear">最卡</span>{{ cats[cats.length - 1].name }}
+            <span class="price">平均每分鐘 {{ Math.round(cats[cats.length - 1].avg_wpm).toLocaleString() }} 字 · {{ cats[cats.length - 1].books }} 本</span>
+          </div>
+          <div v-if="cats.length > 2" class="note">共 {{ cats.length }} 個分類有排名</div>
+          <div v-else-if="cats.length === 1" class="note">目前只有一個分類夠本數，再多讀幾個分類就能比較。</div>
+        </template>
+        <div v-else class="note mt-1">用看書速度「採計」的書依分類平均，每個分類至少 2 本才排名（未分類不算）。</div>
+      </div></div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="card kpi h-100"><div class="card-body">
+        <div class="kpi-label">字數富翁</div>
+        <template v-if="rich">
+          <div class="kpi-value small-value rf-serif text-truncate">{{ rich.author }}</div>
+          <div class="note">書架上共 {{ wan(rich.words) }} · {{ rich.books }} 本</div>
+        </template>
+        <div v-else class="note mt-1">書填了作者與字數後，就會算出字數最多的作者。</div>
+      </div></div>
+    </div>
   </div>
+
   <section v-if="showDetail" class="card mt-3">
     <div class="card-body">
       <div class="d-flex align-items-center mb-2">
@@ -123,6 +152,8 @@ defineEmits(['open']) // 點最划算 / 最貴的書名，攤開那本書
 const fun = computed(() => funStats(props.summary))
 const details = computed(() => props.summary.speed?.details || [])
 const showDetail = ref(false)
+const cats = computed(() => props.summary.category_speeds || [])
+const rich = computed(() => props.summary.word_rich)
 // 每千字的錢通常是個位數，留一位小數
 const money = v => `$${v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString()}`
 
@@ -150,6 +181,8 @@ const time = computed(() => [
 .book-link.inline { display: inline; width: auto; padding: 0; text-decoration: underline; text-decoration-color: var(--rf-line-2); }
 .detail-table { font-size: 13px; min-width: 760px; }
 .detail-table tr.excluded td { color: var(--rf-ink-2); }
+.cat-line { padding-top: 4px; font-size: 14px; }
+.cat-line .price { display: block; padding-left: 4px; font-size: 12px; color: var(--rf-ink-2); }
 .tag { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 8px; font-size: 11px; }
 .tag.cheap { background: #E1E7D5; color: #5F6F43; }
 .tag.dear { background: #EED9D3; color: #8E3B2F; }

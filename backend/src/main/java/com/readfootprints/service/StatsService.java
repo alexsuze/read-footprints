@@ -3,6 +3,7 @@ package com.readfootprints.service;
 import com.readfootprints.model.Book;
 import com.readfootprints.model.ReadingLog;
 import com.readfootprints.model.User;
+import com.readfootprints.repository.CategoryRepository;
 import com.readfootprints.repository.ReadingLogRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
@@ -28,15 +29,27 @@ public class StatsService {
 
     private final MongoTemplate mongo;
     private final ReadingLogRepository logs;
+    private final CategoryRepository categories;
 
-    public StatsService(MongoTemplate mongo, ReadingLogRepository logs) {
+    public StatsService(MongoTemplate mongo, ReadingLogRepository logs, CategoryRepository categories) {
         this.mongo = mongo;
         this.logs = logs;
+        this.categories = categories;
     }
 
     public record Summary(long totalBooks, long readBooks, long readThisYear,
                           long totalMinutes, long readingDays, int streakDays,
-                          WordPrice wordPrice, Speed speed, Backlog backlog) {}
+                          WordPrice wordPrice, Speed speed, Backlog backlog,
+                          List<CategorySpeed> categorySpeeds, WordRich wordRich) {}
+
+    /** 分類閱讀速度：看書速度採計的書依分類分組，平均每分鐘字數（各本速度的平均），快到慢 */
+    public record CategorySpeed(String name, int books, double avgWpm) {}
+
+    /** 字數富翁：自己書架上字數加總最多的作者（合著的書每位作者都算全本字數） */
+    public record WordRich(String author, long words, int books) {}
+
+    /** 分類速度至少要幾本才排名，避免一本書就決定快慢 */
+    static final int MIN_CATEGORY_BOOKS = 2;
 
     /** 一字千金：同時有字數與金額（> 0）的書；cheapest / priciest 依每字價格 */
     public record WordPrice(int books, long totalPrice, long totalWords, BookRef cheapest, BookRef priciest) {}
@@ -68,7 +81,8 @@ public class StatsService {
     public Summary summary(User me) {
         LocalDate today = LocalDate.now(UserService.ZONE);
         Query q = new Query(where("user_id").is(me.id));
-        q.fields().include("title", "read", "read_date", "reading", "reading_since", "price", "word_count");
+        q.fields().include("title", "read", "read_date", "reading", "reading_since", "price", "word_count",
+                "category_id", "authors");
         List<Book> books = mongo.find(q, Book.class);
         String year = String.valueOf(today.getYear());
         long read = books.stream().filter(b -> b.read).count();
@@ -82,8 +96,11 @@ public class StatsService {
             total += l.minutes;
             if (l.minutes > 0) days++;
         }
+        Speed speed = speed(books, byDate, today);
+        Map<String, String> names = new HashMap<>();
+        categories.findByUserIdOrderByNameAsc(me.id).forEach(c -> names.put(c.id, c.name));
         return new Summary(books.size(), read, readThisYear, total, days, streak(byDate, today),
-                wordPrice(books), speed(books, byDate, today), backlog(books));
+                wordPrice(books), speed, backlog(books), categorySpeeds(books, speed, names), wordRich(books));
     }
 
     static WordPrice wordPrice(List<Book> books) {
@@ -194,6 +211,44 @@ public class StatsService {
         }
         details.sort(java.util.Comparator.comparing(SpeedBook::to).reversed());
         return new Speed(speeds.size(), median(speeds), words, Math.round(minutes * 10) / 10.0, dayTotal, details);
+    }
+
+    /** 只用看書速度「採計」的書；未分類不排名；每個分類至少 MIN_CATEGORY_BOOKS 本 */
+    static List<CategorySpeed> categorySpeeds(List<Book> books, Speed speed, Map<String, String> names) {
+        Map<String, Book> byId = new HashMap<>();
+        books.forEach(b -> byId.put(b.id, b));
+        Map<String, List<Double>> groups = new java.util.TreeMap<>();
+        for (SpeedBook d : speed.details()) {
+            if (!d.included()) continue;
+            Book b = byId.get(d.id());
+            String name = b == null || b.categoryId == null ? null : names.get(b.categoryId);
+            if (name != null) groups.computeIfAbsent(name, k -> new java.util.ArrayList<>()).add(d.wpm());
+        }
+        return groups.entrySet().stream()
+                .filter(e -> e.getValue().size() >= MIN_CATEGORY_BOOKS)
+                .map(e -> new CategorySpeed(e.getKey(), e.getValue().size(),
+                        Math.round(e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0) * 10) / 10.0))
+                .sorted(java.util.Comparator.comparingDouble(CategorySpeed::avgWpm).reversed())
+                .toList();
+    }
+
+    /** 書架上所有有字數的書（不管讀了沒），依作者加總字數；同字數時本數多的優先 */
+    static WordRich wordRich(List<Book> books) {
+        Map<String, long[]> sum = new HashMap<>(); // [字數, 本數]
+        for (Book b : books) {
+            if (b.wordCount == null || b.wordCount <= 0 || b.authors == null) continue;
+            for (String a : new java.util.LinkedHashSet<>(b.authors)) {
+                if (a == null || a.isBlank()) continue;
+                long[] v = sum.computeIfAbsent(a.trim(), k -> new long[2]);
+                v[0] += b.wordCount;
+                v[1]++;
+            }
+        }
+        return sum.entrySet().stream()
+                .max(java.util.Comparator.<Map.Entry<String, long[]>>comparingLong(e -> e.getValue()[0])
+                        .thenComparingLong(e -> e.getValue()[1]))
+                .map(e -> new WordRich(e.getKey(), e.getValue()[0], (int) e.getValue()[1]))
+                .orElse(null);
     }
 
     static double median(List<Double> values) {

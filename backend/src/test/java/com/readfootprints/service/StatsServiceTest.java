@@ -165,6 +165,51 @@ class StatsServiceTest {
         assertEquals(270.0, r.minutes()); // 30 + 60 × 4
     }
 
+    private static Book withCat(Book b, String cat, String... authors) {
+        b.categoryId = cat;
+        b.authors = List.of(authors);
+        return b;
+    }
+
+    @Test
+    void categorySpeedsAverageIncludedBooks() {
+        var details = List.of(
+                new StatsService.SpeedBook("n1", "", "", "2026-10-01", 1, 1, 1, 1, 1, 600.0, true, null, false),
+                new StatsService.SpeedBook("n2", "", "", "2026-10-02", 1, 1, 1, 1, 1, 400.0, true, null, false),
+                new StatsService.SpeedBook("h1", "", "", "2026-10-03", 1, 1, 1, 1, 1, 200.0, true, null, false),
+                new StatsService.SpeedBook("h2", "", "", "2026-10-04", 1, 1, 1, 1, 1, 300.0, true, null, false),
+                new StatsService.SpeedBook("h3", "", "", "2026-10-05", 1, 1, 1, 1, 1, 900.0, false, "速度不合理", false),
+                new StatsService.SpeedBook("s1", "", "", "2026-10-06", 1, 1, 1, 1, 1, 350.0, true, null, false),
+                new StatsService.SpeedBook("u1", "", "", "2026-10-07", 1, 1, 1, 1, 1, 999.0, true, null, false));
+        var speed = new StatsService.Speed(5, 350, 0, 0, 0, details);
+        var books = List.of(withCat(book("n1", null, 1, true, null, null), "nov"), withCat(book("n2", null, 1, true, null, null), "nov"),
+                withCat(book("h1", null, 1, true, null, null), "his"), withCat(book("h2", null, 1, true, null, null), "his"),
+                withCat(book("h3", null, 1, true, null, null), "his"), withCat(book("s1", null, 1, true, null, null), "sci"),
+                withCat(book("u1", null, 1, true, null, null), null));
+        var result = StatsService.categorySpeeds(books, speed, Map.of("nov", "小說", "his", "歷史", "sci", "科普"));
+        // 科普只有 1 本不排名；未分類不排名；歷史的 h3 沒採計
+        assertEquals(2, result.size());
+        assertEquals("小說", result.get(0).name());
+        assertEquals(500.0, result.get(0).avgWpm());
+        assertEquals("歷史", result.get(1).name());
+        assertEquals(250.0, result.get(1).avgWpm());
+        assertEquals(2, result.get(1).books());
+    }
+
+    @Test
+    void wordRichSumsByAuthor() {
+        var rich = StatsService.wordRich(List.of(
+                withCat(book("a", null, 100_000, true, null, null), null, "東野圭吾"),
+                withCat(book("b", null, 120_000, false, null, null), null, "東野圭吾"),
+                withCat(book("c", null, 150_000, true, null, null), null, "村上春樹", "東野圭吾"), // 合著兩人都算
+                withCat(book("d", null, 200_000, true, null, null), null, "村上春樹"),
+                withCat(book("e", null, null, true, null, null), null, "村上春樹")));               // 沒字數不算
+        assertEquals("東野圭吾", rich.author());
+        assertEquals(370_000, rich.words());
+        assertEquals(3, rich.books());
+        assertEquals(null, StatsService.wordRich(List.of()));
+    }
+
     @Test
     void medianOfSpeeds() {
         assertEquals(0.0, StatsService.median(List.of()));
