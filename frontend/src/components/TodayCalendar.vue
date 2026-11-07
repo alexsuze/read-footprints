@@ -46,6 +46,10 @@
           </MarathonProgress>
         </div>
       </div>
+
+      <div v-if="reading" class="reading">
+        <ReadingList :books="reading" @open="$emit('open-book', $event)" @changed="$emit('changed')" />
+      </div>
     </div>
   </div>
 </template>
@@ -54,6 +58,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AddMinutes from './AddMinutes.vue'
+import ReadingList from './ReadingList.vue'
 import MarathonProgress from './MarathonProgress.vue'
 import { useToday } from '../composables/useToday'
 import http from '../api/http'
@@ -63,7 +68,12 @@ import { missingLogDates, shiftDate } from '../utils/stats'
 
 // 總覽的撕頁日曆：只顯示今天與進行中的活動，點活動展開資訊，馬拉松可直接登錄分鐘（規劃書 4.2）
 // 前 7 天（不含今天）沒填閱讀時數會提醒；只缺昨天時直接寫在日曆上
-const props = defineProps({ activities: { type: Array, required: true } })
+// 活動下方列出閱讀中的書（2026-11-07 從獨立區塊併進來）
+const props = defineProps({
+  activities: { type: Array, required: true },
+  reading: { type: Array, default: null } // 閱讀中的書；null = 還沒載入，先不顯示
+})
+defineEmits(['open-book', 'changed'])
 
 const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 const now = useToday()
@@ -159,6 +169,7 @@ function toggle (id) {
 .mini { height: 4px; margin-top: 6px; background: var(--rf-paper-2); border-radius: 2px; overflow: hidden; }
 .mini div { height: 100%; }
 .detail { margin-top: 8px; }
+.reading { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rf-line); }
 .missing { font-size: 12px; color: var(--rf-vermilion); text-decoration: none; }
 .missing:hover { text-decoration: underline; }
 .missing-list { margin-top: 12px; }

@@ -23,20 +23,9 @@
     </div>
   </section>
 
-  <section class="card mb-3">
-    <div class="card-body">
-      <div class="d-flex align-items-baseline gap-2" :class="reading.length ? 'mb-4' : 'mb-2'">
-        <h2 class="h5 mb-0">閱讀中</h2>
-        <span v-if="reading.length" class="text-secondary small">{{ reading.length }} 本</span>
-      </div>
-      <p v-if="readingLoaded && !reading.length" class="text-secondary small mb-0">目前沒有閱讀中的書。點開一本書按「開書」，就會出現在這裡。</p>
-      <BookShelf v-else-if="reading.length" :books="reading" :per-row="PER_ROW" :caption="dayCaption" @select="opened = $event" />
-    </div>
-  </section>
-
   <div class="row g-3">
     <div class="col-lg-7">
-      <section class="card h-100"><div class="card-body"><TodayCalendar :activities="activities" /></div></section>
+      <section class="card h-100"><div class="card-body"><TodayCalendar :activities="activities" :reading="readingLoaded ? reading : null" @open-book="opened = $event" @changed="refresh" /></div></section>
     </div>
     <div class="col-lg-5">
       <section class="card h-100">
@@ -59,7 +48,6 @@ import BookShelf from '../components/BookShelf.vue'
 import LoanBoard from '../components/LoanBoard.vue'
 import OpenBook from '../components/OpenBook.vue'
 import TodayCalendar from '../components/TodayCalendar.vue'
-import { readingDay } from '../utils/book'
 
 const RECENT = 12
 const PER_ROW = window.matchMedia('(max-width: 767.98px)').matches ? 6 : RECENT
@@ -74,8 +62,6 @@ const opened = ref(null)
 const loanBoard = ref(null)
 const reading = ref([])
 const readingLoaded = ref(false)
-const today = new Date().toLocaleDateString('sv')
-const dayCaption = b => `第 ${readingDay(b.reading_since, today) ?? 1} 天`
 
 async function loadBooks () {
   const params = { shelf: shelf.value, sort: 'buy_date', order: 'desc', page: 1, size: RECENT }
