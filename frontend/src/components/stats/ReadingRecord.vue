@@ -91,11 +91,42 @@
         <template v-if="rich">
           <div class="kpi-value small-value rf-serif text-truncate">{{ rich.author }}</div>
           <div class="note">書架上共 {{ wan(rich.words) }} · {{ rich.books }} 本</div>
+          <button type="button" class="btn btn-sm btn-link px-0 mt-1" :aria-expanded="showRanking" @click="showRanking = !showRanking">{{ showRanking ? '收起作家排名' : '查看作家排名' }}</button>
         </template>
         <div v-else class="note mt-1">書填了作者與字數後，就會算出字數最多的作者。</div>
       </div></div>
     </div>
   </div>
+
+  <section v-if="showRanking" class="card mt-3">
+    <div class="card-body">
+      <div class="d-flex align-items-center mb-2">
+        <h2 class="h6 mb-0">字數富翁作家排名</h2>
+        <button type="button" class="btn-close btn-sm ms-auto" aria-label="關閉作家排名" @click="showRanking = false"></button>
+      </div>
+      <p class="small text-secondary">書架上所有有字數的書（讀了沒都算）依作者加總字數；合著的書每位作者都算全本字數，版式與沒填字數的書不算。</p>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 rank-table">
+          <thead><tr><th class="rank">名次</th><th>作者</th><th class="text-end">字數</th><th class="text-end">本數</th><th class="text-end">平均每本</th></tr></thead>
+          <tbody>
+            <tr v-for="r in rankedAuthors.slice(0, rankLimit)" :key="r.author">
+              <td class="rank"><span class="medal" :class="`m${r.rank}`">{{ r.rank }}</span></td>
+              <td>{{ r.author }}</td>
+              <td class="text-end text-nowrap">{{ r.words.toLocaleString() }}</td>
+              <td class="text-end">{{ r.books }}</td>
+              <td class="text-end text-nowrap">{{ wan(r.words / r.books) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex align-items-center justify-content-center gap-3 mt-2">
+        <span class="small text-secondary">顯示 {{ Math.min(rankLimit, rankedAuthors.length) }} / {{ rankedAuthors.length }} 位</span>
+        <button v-if="rankLimit < rankedAuthors.length" type="button" class="btn btn-sm btn-outline-primary" @click="rankLimit += DETAIL_STEP">
+          再顯示 {{ Math.min(DETAIL_STEP, rankedAuthors.length - rankLimit) }} 位
+        </button>
+      </div>
+    </div>
+  </section>
 
   <section v-if="showDetail" class="card mt-3">
     <div class="card-body">
@@ -164,6 +195,17 @@ const detailLimit = ref(DETAIL_STEP)
 watch(showDetail, open => { if (!open) detailLimit.value = DETAIL_STEP })
 const cats = computed(() => props.summary.category_speeds || [])
 const rich = computed(() => props.summary.word_rich)
+// 作家排名：同字數同名次；先顯示前 20 名，按鈕每次多 20 位，收起後重來
+const showRanking = ref(false)
+const rankLimit = ref(20)
+watch(showRanking, open => { if (!open) rankLimit.value = DETAIL_STEP })
+const rankedAuthors = computed(() => {
+  let rank = 0
+  return (props.summary.word_rich_ranking || []).map((r, i, all) => {
+    if (i === 0 || all[i - 1].words !== r.words) rank = i + 1
+    return { ...r, rank }
+  })
+})
 // 每千字的錢通常是個位數，留一位小數
 const money = v => `$${v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString()}`
 
@@ -193,6 +235,12 @@ const time = computed(() => [
 .detail-table tr.excluded td { color: var(--rf-ink-2); }
 .cat-line { padding-top: 4px; font-size: 14px; }
 .cat-line .price { display: block; padding-left: 4px; font-size: 12px; color: var(--rf-ink-2); }
+.rank-table { font-size: 13px; }
+.rank { width: 56px; }
+.medal { display: inline-block; min-width: 24px; text-align: center; border-radius: 12px; font-size: 12px; color: var(--rf-ink-2); }
+.medal.m1 { background: #E9D9A6; color: #6E5338; }
+.medal.m2 { background: #E1E3E4; color: #4F5458; }
+.medal.m3 { background: #E6CBB0; color: #6E4A2C; }
 .tag { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 8px; font-size: 11px; }
 .tag.cheap { background: #E1E7D5; color: #5F6F43; }
 .tag.dear { background: #EED9D3; color: #8E3B2F; }

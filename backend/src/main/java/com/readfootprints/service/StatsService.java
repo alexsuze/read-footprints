@@ -40,12 +40,12 @@ public class StatsService {
     public record Summary(long totalBooks, long readBooks, long readThisYear,
                           long totalMinutes, long readingDays, int streakDays,
                           WordPrice wordPrice, Speed speed, Backlog backlog,
-                          List<CategorySpeed> categorySpeeds, WordRich wordRich) {}
+                          List<CategorySpeed> categorySpeeds, WordRich wordRich, List<WordRich> wordRichRanking) {}
 
     /** 分類閱讀速度：看書速度採計的書依分類分組，平均每分鐘字數（各本速度的平均），快到慢 */
     public record CategorySpeed(String name, int books, double avgWpm) {}
 
-    /** 字數富翁：自己書架上字數加總最多的作者（合著的書每位作者都算全本字數） */
+    /** 字數富翁：自己書架上字數加總最多的作者（合著的書每位作者都算全本字數）；wordRichRanking 是完整排名 */
     public record WordRich(String author, long words, int books) {}
 
     /** 分類速度至少要幾本才排名，避免一本書就決定快慢 */
@@ -97,10 +97,12 @@ public class StatsService {
             if (l.minutes > 0) days++;
         }
         Speed speed = speed(books, byDate, today);
+        List<WordRich> ranking = wordRichRanking(books);
         Map<String, String> names = new HashMap<>();
         categories.findByUserIdOrderByNameAsc(me.id).forEach(c -> names.put(c.id, c.name));
         return new Summary(books.size(), read, readThisYear, total, days, streak(byDate, today),
-                wordPrice(books), speed, backlog(books), categorySpeeds(books, speed, names), wordRich(books));
+                wordPrice(books), speed, backlog(books), categorySpeeds(books, speed, names),
+                ranking.isEmpty() ? null : ranking.getFirst(), ranking);
     }
 
     static WordPrice wordPrice(List<Book> books) {
@@ -233,8 +235,8 @@ public class StatsService {
                 .toList();
     }
 
-    /** 書架上所有有字數的書（不管讀了沒），依作者加總字數；同字數時本數多的優先 */
-    static WordRich wordRich(List<Book> books) {
+    /** 書架上所有有字數的書（不管讀了沒），依作者加總字數排名：字數多的在前，同字數本數多的在前，再依名字 */
+    static List<WordRich> wordRichRanking(List<Book> books) {
         Map<String, long[]> sum = new HashMap<>(); // [字數, 本數]
         for (Book b : books) {
             if (b.wordCount == null || b.wordCount <= 0 || b.authors == null) continue;
@@ -246,10 +248,11 @@ public class StatsService {
             }
         }
         return sum.entrySet().stream()
-                .max(java.util.Comparator.<Map.Entry<String, long[]>>comparingLong(e -> e.getValue()[0])
-                        .thenComparingLong(e -> e.getValue()[1]))
+                .sorted(java.util.Comparator.<Map.Entry<String, long[]>>comparingLong(e -> -e.getValue()[0])
+                        .thenComparingLong(e -> -e.getValue()[1])
+                        .thenComparing(Map.Entry::getKey))
                 .map(e -> new WordRich(e.getKey(), e.getValue()[0], (int) e.getValue()[1]))
-                .orElse(null);
+                .toList();
     }
 
     static double median(List<Double> values) {

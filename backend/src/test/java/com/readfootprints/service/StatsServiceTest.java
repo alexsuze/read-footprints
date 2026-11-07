@@ -198,16 +198,20 @@ class StatsServiceTest {
 
     @Test
     void wordRichSumsByAuthor() {
-        var rich = StatsService.wordRich(List.of(
+        var ranking = StatsService.wordRichRanking(List.of(
                 withCat(book("a", null, 100_000, true, null, null), null, "東野圭吾"),
                 withCat(book("b", null, 120_000, false, null, null), null, "東野圭吾"),
                 withCat(book("c", null, 150_000, true, null, null), null, "村上春樹", "東野圭吾"), // 合著兩人都算
                 withCat(book("d", null, 200_000, true, null, null), null, "村上春樹"),
                 withCat(book("e", null, null, true, null, null), null, "村上春樹")));               // 沒字數不算
+        assertEquals(2, ranking.size());
+        var rich = ranking.getFirst();
         assertEquals("東野圭吾", rich.author());
         assertEquals(370_000, rich.words());
         assertEquals(3, rich.books());
-        assertEquals(null, StatsService.wordRich(List.of()));
+        assertEquals("村上春樹", ranking.get(1).author());
+        assertEquals(350_000, ranking.get(1).words());
+        assertEquals(List.of(), StatsService.wordRichRanking(List.of()));
     }
 
     @Test
