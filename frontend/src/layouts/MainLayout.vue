@@ -42,7 +42,10 @@ const menu = [
   { name: 'stats', label: '閱讀統計', icon: 'bi-bar-chart-line' },
   { name: 'settings', label: '設定', icon: 'bi-gear' }
 ]
-onMounted(() => auth.loadPending().catch(() => {}))
+onMounted(() => {
+  auth.loadPending().catch(() => {})
+  auth.refreshUser().catch(() => {}) // 在別台裝置改過的設定（例如報表欄位）也帶過來
+})
 </script>
 
 <style scoped>

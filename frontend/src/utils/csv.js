@@ -1,20 +1,5 @@
-// 書籍匯出 CSV（規劃書 4.3）：UTF-8 加 BOM，Excel 可直接開
-import { bookState, STATE_LABELS } from './book.js'
-
-const COLUMNS = [
-  ['書名', b => b.title],
-  ['ISBN', b => b.isbn],
-  ['作者', b => (b.authors || []).join('、')],
-  ['譯者', b => (b.translators || []).join('、')],
-  ['出版社', b => b.publisher],
-  ['出版日期', b => b.publish_date],
-  ['分類', b => b.category_name],
-  ['字數', b => b.word_count],
-  ['狀態', b => STATE_LABELS[bookState(b)]],
-  ['完讀日期', b => b.read_date],
-  ['購買連結', b => b.buy_url]
-]
-const PRIVATE_COLUMNS = [['金額', b => b.price], ['購買日期', b => b.buy_date], ['開書日期', b => b.reading_since]]
+// 書籍匯出 CSV（規劃書 4.3）：UTF-8 加 BOM，Excel 可直接開。欄位跟著設定 → 報表欄位
+import { resolveColumns } from './columns.js'
 
 function cell (value) {
   let s = value == null ? '' : String(value)
@@ -22,9 +7,9 @@ function cell (value) {
   return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s
 }
 
-// showPrivate：自己的書架才含金額與購買日期
-export function booksToCsv (books, showPrivate) {
-  const columns = showPrivate ? [...COLUMNS, ...PRIVATE_COLUMNS] : COLUMNS
-  const rows = [columns.map(c => c[0]), ...books.map(b => columns.map(c => cell(c[1](b))))]
+// isOwner：自己的書架才含開書日期、購買日期、金額；keys：使用者選的欄位（null = 預設）
+export function booksToCsv (books, isOwner, keys = null) {
+  const columns = resolveColumns(keys, isOwner)
+  const rows = [columns.map(c => c.label), ...books.map(b => columns.map(c => cell(c.text(b))))]
   return '﻿' + rows.map(r => r.join(',')).join('\r\n')
 }

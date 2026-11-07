@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * 使用者（Google 登入）。規劃書第 8 節。
@@ -31,4 +32,7 @@ public class User {
     public Instant createdAt;
     @Field("last_login_at")
     public Instant lastLoginAt;
+    /** 報表（圖書館列表與 CSV）要顯示的欄位與順序；null = 用前端預設 */
+    @Field("list_columns")
+    public List<String> listColumns;
 }

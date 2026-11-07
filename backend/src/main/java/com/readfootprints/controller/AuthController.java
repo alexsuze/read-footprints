@@ -6,11 +6,13 @@ import com.readfootprints.service.UserService;
 import com.readfootprints.service.UserService.LoginResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,4 +38,12 @@ public class AuthController {
     public User me(@RequestAttribute(AuthFilter.USER) User user) {
         return user;
     }
+
+    /** body：{ list_columns: [...] }，回傳更新後的使用者 */
+    @PutMapping("/me/list-columns")
+    public User saveListColumns(@RequestAttribute(AuthFilter.USER) User user, @RequestBody ListColumns body) {
+        return service.saveListColumns(user, body.listColumns());
+    }
+
+    public record ListColumns(List<String> listColumns) {}
 }

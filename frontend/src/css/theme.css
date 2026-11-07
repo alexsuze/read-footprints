@@ -35,7 +35,7 @@
 
 h1, h2, h3, .rf-serif { font-family: var(--rf-serif); letter-spacing: 1px; }
 
-.btn-primary { --bs-btn-bg: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood-2); --bs-btn-hover-border-color: var(--rf-wood-2); --bs-btn-active-bg: var(--rf-wood-2); --bs-btn-active-border-color: var(--rf-wood-2); --bs-btn-color: var(--rf-paper); --bs-btn-hover-color: var(--rf-paper); }
+.btn-primary { --bs-btn-disabled-bg: var(--rf-wood); --bs-btn-disabled-border-color: var(--rf-wood); --bs-btn-disabled-color: var(--rf-paper); --bs-btn-bg: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood-2); --bs-btn-hover-border-color: var(--rf-wood-2); --bs-btn-active-bg: var(--rf-wood-2); --bs-btn-active-border-color: var(--rf-wood-2); --bs-btn-color: var(--rf-paper); --bs-btn-hover-color: var(--rf-paper); }
 .btn-outline-primary { --bs-btn-disabled-color: var(--rf-wood); --bs-btn-disabled-border-color: var(--rf-wood); --bs-btn-color: var(--rf-wood); --bs-btn-border-color: var(--rf-wood); --bs-btn-hover-bg: var(--rf-wood); --bs-btn-hover-border-color: var(--rf-wood); --bs-btn-hover-color: var(--rf-paper); --bs-btn-active-bg: var(--rf-wood); --bs-btn-active-border-color: var(--rf-wood); }
 .btn-outline-success { --bs-btn-color: var(--rf-matcha); --bs-btn-border-color: var(--rf-matcha); --bs-btn-hover-bg: var(--rf-matcha); --bs-btn-hover-border-color: var(--rf-matcha); }
 .btn-outline-danger { --bs-btn-color: var(--rf-vermilion); --bs-btn-border-color: var(--rf-vermilion); --bs-btn-hover-bg: var(--rf-vermilion); --bs-btn-hover-border-color: var(--rf-vermilion); }

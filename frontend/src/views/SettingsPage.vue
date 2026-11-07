@@ -10,6 +10,8 @@
 
   <CategoryManager v-if="tab === 'categories'" />
 
+  <ColumnSettings v-else-if="tab === 'columns'" />
+
   <UserApproval v-else-if="tab === 'users'" />
 
   <ProfileCard v-else-if="tab === 'profile'" />
@@ -22,6 +24,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import CategoryManager from '../components/CategoryManager.vue'
+import ColumnSettings from '../components/ColumnSettings.vue'
 import LoanManager from '../components/LoanManager.vue'
 import ProfileCard from '../components/ProfileCard.vue'
 import UserApproval from '../components/UserApproval.vue'
@@ -30,6 +33,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const tabs = computed(() => [
   { key: 'categories', label: '分類管理' },
+  { key: 'columns', label: '報表欄位' },
   ...(auth.isAdmin ? [{ key: 'users', label: '使用者核准' }, { key: 'loans', label: '租借管理' }] : []),
   { key: 'profile', label: '個人資料' }
 ])

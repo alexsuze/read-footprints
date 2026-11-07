@@ -25,6 +25,15 @@ export const useAuthStore = defineStore('auth', {
       window.location.hash = '#/login'
       window.location.reload()
     },
+    // 個人設定更新後（例如報表欄位）同步到瀏覽器裡存的登入資料
+    setUser (user) {
+      this.user = user
+      saveSession(authToken(), user)
+    },
+    async refreshUser () {
+      const { data } = await http.get('/auth/me', { silent: true })
+      this.setUser(data)
+    },
     async loadPending () {
       if (!this.isAdmin) return
       const { data } = await http.get('/admin/users', { silent: true })

@@ -118,6 +118,23 @@ public class UserService {
         return repo.save(u);
     }
 
+    /** 報表欄位可選的 key（書名固定顯示，不在清單內） */
+    static final List<String> COLUMN_KEYS = List.of("isbn", "authors", "translators", "publisher", "publish_date",
+            "category", "word_count", "state", "reading_since", "read_date", "buy_date", "price", "buy_url", "created_at");
+
+    /** 儲存報表欄位：只收認得的 key，去掉重複，保留順序；空陣列 = 只顯示書名 */
+    public User saveListColumns(User me, List<String> columns) {
+        me.listColumns = cleanColumns(columns);
+        return repo.save(me);
+    }
+
+    static List<String> cleanColumns(List<String> columns) {
+        if (columns == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "請提供欄位");
+        List<String> unknown = columns.stream().filter(c -> !COLUMN_KEYS.contains(c)).toList();
+        if (!unknown.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "不認得的欄位：" + String.join("、", unknown));
+        return columns.stream().distinct().toList();
+    }
+
     /** 管理員帳號（借書的書主）。尚未登入過時為 null。 */
     public User admin() {
         return repo.findFirstByAdminTrue().orElse(null);

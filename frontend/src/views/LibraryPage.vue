@@ -39,7 +39,8 @@
   </section>
   <section v-else class="card">
     <div class="card-body">
-      <BookTable :books="books" :show-private="isMine" :empty-text="emptyText" @select="opened = $event" />
+      <BookTable :books="books" :columns="columns" :sort="sort" :order="order" :empty-text="emptyText" @select="opened = $event" @sort="sortBy" />
+      <p class="small text-secondary mt-2 mb-0">要顯示哪些欄位可以到 <RouterLink :to="{ name: 'settings', query: { tab: 'columns' } }">設定 → 報表欄位</RouterLink> 調整，匯出 CSV 也會照這個設定。</p>
       <PageNav v-if="pages > 1" class="mt-3" :page="page" :pages="pages" @go="go" />
     </div>
   </section>
@@ -49,12 +50,14 @@
 </template>
 
 <script setup>
+import { RouterLink } from 'vue-router'
 import { computed, onMounted, ref } from 'vue'
 import http from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import BookForm from '../components/BookForm.vue'
 import BookShelf from '../components/BookShelf.vue'
 import BookTable from '../components/BookTable.vue'
+import { resolveColumns } from '../utils/columns'
 import OpenBook from '../components/OpenBook.vue'
 import PageNav from '../components/PageNav.vue'
 import { booksToCsv } from '../utils/csv'
@@ -67,6 +70,7 @@ const SORTS = [
   { value: 'publisher', label: '出版社' },
   { value: 'publish_date', label: '出版日期' },
   { value: 'read_date', label: '完讀日期' },
+  { value: 'reading_since', label: '開書日期' },
   { value: 'price', label: '金額' },
   { value: 'created_at', label: '建立時間' }
 ]
@@ -76,9 +80,12 @@ const PER_ROW = MOBILE ? 5 : WIDE ? 20 : 10
 const PER_SHELF = PER_ROW * 2 // 上下兩座：手機 10、桌機 20、寬螢幕 40；列表模式每頁一樣多
 const VIEWS = [{ value: 'shelf', label: '書架', icon: 'bi-bookshelf' }, { value: 'list', label: '列表', icon: 'bi-list-ul' }]
 const VIEW_KEY = 'rf.libraryView'
+const PRIVATE_SORTS = ['price', 'reading_since'] // 看管理員書架時不能用
 
 const auth = useAuthStore()
 const perRow = PER_ROW
+// 報表欄位（設定 → 報表欄位，存在帳號），列表與 CSV 共用
+const columns = computed(() => resolveColumns(auth.user?.list_columns ?? null, isMine.value))
 // 書架（預設）/ 列表，記在這台瀏覽器
 const view = ref(readView())
 
@@ -113,7 +120,7 @@ const emptyText = computed(() => {
   return isMine.value ? '書架還空著，按「新增書籍」放上第一本書' : '管理員書架還沒有書'
 })
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PER_SHELF)))
-const sortOptions = computed(() => SORTS.filter(s => isMine.value || s.value !== 'price'))
+const sortOptions = computed(() => SORTS.filter(s => isMine.value || !PRIVATE_SORTS.includes(s.value)))
 const query = () => ({ shelf: shelf.value, keyword: keyword.value, read: read.value, sort: sort.value, order: order.value })
 
 async function load () {
@@ -129,6 +136,13 @@ function go (n) {
 }
 const search = () => go(1)
 
+// 點列表欄位標題排序
+function sortBy ({ sort: s, order: o }) {
+  sort.value = s
+  order.value = o
+  search()
+}
+
 function toggleOrder () {
   order.value = order.value === 'desc' ? 'asc' : 'desc'
   search()
@@ -141,7 +155,7 @@ function setRead (value) {
 
 function setShelf (value) {
   shelf.value = value
-  if (value === 'admin' && sort.value === 'price') sort.value = 'buy_date'
+  if (value === 'admin' && PRIVATE_SORTS.includes(sort.value)) sort.value = 'buy_date'
   if (value === 'admin' && read.value === 'reading') read.value = 'all'
   search()
 }
@@ -165,7 +179,7 @@ async function exportCsv () {
   exporting.value = true
   try {
     const { data } = await http.get('/books', { params: { ...query(), page: 1, size: 5000 } })
-    const url = URL.createObjectURL(new Blob([booksToCsv(data.items, isMine.value)], { type: 'text/csv;charset=utf-8' }))
+    const url = URL.createObjectURL(new Blob([booksToCsv(data.items, isMine.value, auth.user?.list_columns ?? null)], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
     link.download = `讀跡書單-${new Date().toLocaleDateString('sv')}.csv`
