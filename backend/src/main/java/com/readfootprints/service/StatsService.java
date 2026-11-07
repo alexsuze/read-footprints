@@ -51,9 +51,10 @@ public class StatsService {
     public record Speed(int books, double medianWpm, long totalWords, double totalMinutes, long totalDays,
                         List<SpeedBook> details) {}
 
+    /** reading = 閱讀中（期間算到今天，只參與分配、不算速度）；included 只會是已讀且採計的書 */
     public record SpeedBook(String id, String title, String from, String to, long days, int loggedDays,
                             Integer words, double minutes, int maxConcurrent, Double wpm, boolean included,
-                            String reason) {}
+                            String reason, boolean reading) {}
 
     /** 書架上還沒讀完（未讀 + 閱讀中）的書：有字數的本數與字數、沒字數的本數 */
     public record Backlog(int booksWithWords, long words, int booksWithoutWords) {}
@@ -173,22 +174,23 @@ public class StatsService {
         double minutes = 0;
         for (Span sp : spans) {
             Book b = sp.book();
-            if (!b.read) continue;
             double m = share.get(sp);
-            Double wpm = b.wordCount != null && b.wordCount > 0 && m > 0 ? Math.round(b.wordCount / m * 10) / 10.0 : null;
+            // 閱讀中的書還沒讀完，不算速度
+            Double wpm = b.read && b.wordCount != null && b.wordCount > 0 && m > 0 ? Math.round(b.wordCount / m * 10) / 10.0 : null;
             int maxOpen = 1;
             for (LocalDate d = sp.from(); !d.isAfter(sp.to()); d = d.plusDays(1)) {
                 maxOpen = Math.max(maxOpen, open.getOrDefault(d, 0) + (reasons.containsKey(sp) ? 1 : 0));
             }
             String reason = reasons.get(sp);
-            if (reason == null) {
+            boolean counted = b.read && reason == null;
+            if (counted) {
                 speeds.add(wpm);
                 words += b.wordCount;
                 minutes += m;
                 dayTotal += sp.days();
             }
             details.add(new SpeedBook(b.id, b.title, sp.from().toString(), sp.to().toString(), sp.days(), sp.logged(),
-                    b.wordCount, m, maxOpen, wpm, reason == null, reason));
+                    b.wordCount, m, maxOpen, wpm, counted, reason, !b.read));
         }
         details.sort(java.util.Comparator.comparing(SpeedBook::to).reversed());
         return new Speed(speeds.size(), median(speeds), words, Math.round(minutes * 10) / 10.0, dayTotal, details);

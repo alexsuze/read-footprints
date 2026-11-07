@@ -146,6 +146,26 @@ class StatsServiceTest {
     }
 
     @Test
+    void readingBooksShareMinutesAndAppearInDetails() {
+        // a：11/01～11/02 讀完 18,000 字；r：11/02 開書、閱讀中（到今天 11/06）；每天 60 分
+        Map<String, Integer> logs = Map.of("2026-11-01", 60, "2026-11-02", 60, "2026-11-03", 60,
+                "2026-11-04", 60, "2026-11-05", 60, "2026-11-06", 60);
+        var sp = StatsService.speed(List.of(
+                book("a", null, 18_000, true, "2026-11-01", "2026-11-02"),
+                book("r", null, 80_000, false, "2026-11-02", null)), logs, TODAY);
+        // a 分到 60 + 30 = 90 分 → 200 字/分；r 只參與分配
+        assertEquals(1, sp.books());
+        assertEquals(200.0, sp.medianWpm());
+        var r = sp.details().stream().filter(d -> d.id().equals("r")).findFirst().orElseThrow();
+        assertEquals(true, r.reading());
+        assertEquals(false, r.included());
+        assertEquals(null, r.reason());
+        assertEquals(null, r.wpm());
+        assertEquals("2026-11-06", r.to());
+        assertEquals(270.0, r.minutes()); // 30 + 60 × 4
+    }
+
+    @Test
     void medianOfSpeeds() {
         assertEquals(0.0, StatsService.median(List.of()));
         assertEquals(300.0, StatsService.median(List.of(300.0)));

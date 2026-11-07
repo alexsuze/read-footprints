@@ -75,19 +75,19 @@
         <button type="button" class="btn-close btn-sm ms-auto" aria-label="關閉計算明細" @click="showDetail = false"></button>
       </div>
       <p class="small text-secondary">
-        ① 先排除：沒有字數、開書到完讀超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半（閱讀中的書也一樣）。
+        ① 先排除：沒有字數、開書到完讀超過 30 天、期間沒有登錄分鐘、有填時數的天數不到一半（閱讀中的書算到今天，條件一樣；它只分走重疊日子的分鐘，不算自己的速度）。
         ② 只用通過的書分配分鐘：每天登錄的分鐘 ÷ 當天同時在讀的本數。
         ③ 每分鐘不到 50 或超過 1,000 字的排除，排除後重新分配，直到沒有書再被排除。
         ④ 主數字取採計書每分鐘字數的<b>中位數</b>。被排除的書不會分走別人的分鐘，它的「分到分鐘」是假設它也在讀時的參考值。
       </p>
-      <p v-if="!details.length" class="text-secondary small mb-0">還沒有同時填了開書日期與完讀日期的書。</p>
+      <p v-if="!details.length" class="text-secondary small mb-0">還沒有填了開書日期的已讀或閱讀中的書。</p>
       <div v-else class="table-responsive">
         <table class="table table-sm align-middle mb-0 detail-table">
           <thead>
-            <tr><th>書名</th><th>開書 ～ 完讀</th><th class="text-end">天數</th><th class="text-end">有填時數</th><th class="text-end">字數</th><th class="text-end">分到分鐘</th><th class="text-end">同時在讀</th><th class="text-end">每分鐘字數</th><th>結果</th></tr>
+            <tr><th>書名</th><th>開書 ～ 完讀 / 今天</th><th class="text-end">天數</th><th class="text-end">有填時數</th><th class="text-end">字數</th><th class="text-end">分到分鐘</th><th class="text-end">同時在讀</th><th class="text-end">每分鐘字數</th><th>結果</th></tr>
           </thead>
           <tbody>
-            <tr v-for="d in details" :key="d.id" :class="{ excluded: !d.included }">
+            <tr v-for="d in details" :key="d.id" :class="{ excluded: !d.included && !(d.reading && !d.reason) }">
               <td><button type="button" class="book-link inline" @click="$emit('open', d.id)">{{ d.title }}</button></td>
               <td class="text-nowrap">{{ d.from.slice(5) }} ～ {{ d.to.slice(5) }}<span class="text-secondary">（{{ d.to.slice(0, 4) }}）</span></td>
               <td class="text-end">{{ d.days }}</td>
@@ -96,7 +96,14 @@
               <td class="text-end">{{ d.minutes ? Math.round(d.minutes).toLocaleString() : '—' }}</td>
               <td class="text-end">{{ d.max_concurrent > 1 ? `最多 ${d.max_concurrent} 本` : '—' }}</td>
               <td class="text-end">{{ d.wpm != null ? Math.round(d.wpm).toLocaleString() : '—' }}</td>
-              <td class="text-nowrap"><span v-if="d.included" class="pill pill-state-read">採計</span><span v-else class="small text-secondary">{{ d.reason }}</span></td>
+              <td class="text-nowrap">
+                <span v-if="d.included" class="pill pill-state-read">採計</span>
+                <template v-else-if="d.reading">
+                  <span class="pill pill-state-reading">閱讀中</span>
+                  <span class="small text-secondary ms-1">{{ d.reason ? `被排除：${d.reason}` : '只參與分配' }}</span>
+                </template>
+                <span v-else class="small text-secondary">{{ d.reason }}</span>
+              </td>
             </tr>
           </tbody>
         </table>
