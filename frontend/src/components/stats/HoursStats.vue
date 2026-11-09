@@ -120,7 +120,7 @@ const title = computed(() => ({ day: `${monthLabel(month.value)}每日時數`, m
 const summaryText = computed(() => {
   if (mode.value !== 'day') return `合計 ${hours(periodTotal.value)}`
   const s = monthSummary(periods.value)
-  return `合計 ${hours(s.total)} · 讀了 ${s.readDays} 天 · 平均 ${Math.round(s.average)} 分鐘`
+  return `合計 ${s.total.toLocaleString()} 分鐘（${hours(s.total)}） · 讀了 ${s.readDays} 天 · 平均 ${Math.round(s.average)} 分鐘`
 })
 const emptyText = computed(() => ({ day: `${monthLabel(month.value)}沒有閱讀紀錄`, month: `${year.value} 年沒有閱讀紀錄`, year: '還沒有閱讀紀錄' })[mode.value])
 const option = computed(() => {
