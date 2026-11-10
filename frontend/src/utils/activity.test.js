@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { activityStatus, monthWeeks, weekBars } from './activity.js'
+import { activityStatus, dailyNeed, monthWeeks, nextStage, weekBars } from './activity.js'
 
 const a = (name, start_date, end_date) => ({ name, start_date, end_date })
 
@@ -37,4 +37,27 @@ test('色條跨週裁切，重疊時分 lane，不重疊共用 lane', () => {
   assert.deepEqual([long.from, long.to, long.lane, long.starts, long.ends], [0, 6, 0, false, false])
   assert.deepEqual([early.from, early.to, early.lane, early.starts, early.ends], [0, 1, 1, true, true])
   assert.deepEqual([late.from, late.to, late.lane], [3, 4, 1])
+})
+
+test('dailyNeed：還差的分鐘 ÷ 剩下天數（含今天）', () => {
+  const m = { type: 'marathon', start_date: '2026-11-01', end_date: '2026-11-30', goal_minutes: 3000, current_minutes: 1200, stage_minutes: [1000, 2000, 3000] }
+  // 11/10～11/30 共 21 天，還差 1800 → 每天 86（無條件進位）
+  assert.deepEqual(dailyNeed(m, '2026-11-10'), { remaining: 1800, days: 21, perDay: 86 })
+  // 最後一天要一口氣讀完
+  assert.deepEqual(dailyNeed(m, '2026-11-30'), { remaining: 1800, days: 1, perDay: 1800 })
+  // 還沒開始：用整段 30 天
+  assert.deepEqual(dailyNeed(m, '2026-10-20'), { remaining: 1800, days: 30, perDay: 60 })
+  assert.equal(dailyNeed(m, '2026-12-01'), null)
+  assert.deepEqual(dailyNeed({ ...m, current_minutes: 3000 }, '2026-11-10'), { done: true })
+  assert.equal(dailyNeed({ type: 'quiz', start_date: '2026-11-01', end_date: '2026-11-30' }, '2026-11-10'), null)
+  // 指定階段
+  assert.deepEqual(dailyNeed(m, '2026-11-10', 2000), { remaining: 800, days: 21, perDay: 39 })
+})
+
+test('nextStage：下一個還沒達到的中間階段', () => {
+  const m = { stage_minutes: [1000, 2000, 3000], current_minutes: 1200 }
+  assert.deepEqual(nextStage(m), { index: 2, minutes: 2000 })
+  assert.equal(nextStage({ ...m, current_minutes: 2500 }), null)
+  assert.equal(nextStage({ stage_minutes: [3000], current_minutes: 0 }), null)
+  assert.deepEqual(nextStage({ stage_minutes: [500, 3000] }), { index: 1, minutes: 500 })
 })

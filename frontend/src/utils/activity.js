@@ -41,3 +41,22 @@ export function weekBars (week, activities) {
     return { activity, from, to, lane, starts: activity.start_date >= week[0], ends: activity.end_date <= week[6] }
   })
 }
+
+// 馬拉松每天至少要讀幾分鐘：還差的分鐘 ÷ 剩下的天數（含今天；還沒開始就用整段活動天數）
+// target 預設是目標分鐘數，也可以傳某個階段；已結束回 null，已達到回 { done: true }
+export function dailyNeed (a, now, target = a.goal_minutes) {
+  if (a.type !== 'marathon' || !target) return null
+  const remaining = target - (a.current_minutes || 0)
+  if (remaining <= 0) return { done: true }
+  if (now > a.end_date) return null
+  const from = now < a.start_date ? a.start_date : now
+  const days = (Date.parse(a.end_date) - Date.parse(from)) / DAY_MS + 1
+  return { remaining, days, perDay: Math.ceil(remaining / days) }
+}
+
+// 下一個還沒達到、而且不是最後目標的階段（沒有就 null）
+export function nextStage (a) {
+  const stages = (a.stage_minutes || []).slice(0, -1)
+  const i = stages.findIndex(s => (a.current_minutes || 0) < s)
+  return i === -1 ? null : { index: i + 1, minutes: stages[i] }
+}
